@@ -1,0 +1,5 @@
+github.com/chrj/smtpd v0.1.1 h1:Jk9ZimOh4njDpMbDLPmdQX+x9AUYGrfE68EyjuQDPjk=
+github.com/chrj/smtpd v0.1.1/go.mod h1:jt4ydELuZmqhn9hn3YpEPV1dY00aOB+Q1nWXnBDFKeY=
+github.com/eaigner/dkim v0.0.0-20150301120808-6fe4a7ee9cfb/go.mod h1:FSCIHbrqk7D01Mj8y/jW+NS1uoCerr+ad+IckTHTFf4=
+github.com/vharitonsky/iniflags v0.0.0-20180513140207-a33cd0b5f3de h1:fkw+7JkxF3U1GzQoX9h69Wvtvxajo5Rbzy6+YMMzPIg=
+github.com/vharitonsky/iniflags v0.0.0-20180513140207-a33cd0b5f3de/go.mod h1:irMhzlTz8+fVFj6CH2AN2i+WI5S6wWFtK3MBCIxIpyI=
