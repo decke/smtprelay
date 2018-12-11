@@ -41,17 +41,16 @@ func main() {
 
 	iniflags.Parse()
 
-	server := &smtpd.Server{
-		Hostname:	*hostName,
-		WelcomeMessage: *welcomeMsg,
-		Handler:        handler,
-		ForceTLS:	*localForceTLS,
-	}
-
 	listeners := strings.Split(*listen, " ")
 
 	for i := range(listeners) {
 		listener := listeners[i]
+
+		server := &smtpd.Server{
+			Hostname:	*hostName,
+			WelcomeMessage: *welcomeMsg,
+			Handler:        handler,
+		}
 
 		if strings.Index(listeners[i], "://") == -1 {
 			;
@@ -69,6 +68,7 @@ func main() {
 				log.Fatal(err)
 			}
 
+			server.ForceTLS = *localForceTLS
 			server.TLSConfig = &tls.Config {
 				Certificates: [] tls.Certificate{cert},
 			}
