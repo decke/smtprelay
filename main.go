@@ -3,8 +3,8 @@ package main
 import (
 	"crypto/tls"
 	"flag"
-	"fmt"
 	"log"
+	"net"
 	"net/smtp"
 	"strings"
 	"time"
@@ -20,17 +20,18 @@ var (
 	localCert  = flag.String("local_cert", "", "SSL certificate for STARTTLS/TLS")
 	localKey   = flag.String("local_key", "", "SSL private key for STARTTLS/TLS")
 	localForceTLS = flag.Bool("local_forcetls", false, "Force STARTTLS (needs local_cert and local_key)")
-	remoteHost = flag.String("remote_host", "smtp.gmail.com", "Outgoing SMTP server")
-	remotePort = flag.Int("remote_port", 587, "Outgoing SMTP port")
+	remoteHost = flag.String("remote_host", "smtp.gmail.com:587", "Outgoing SMTP server")
 	remoteUser = flag.String("remote_user", "", "Username for authentication on outgoing SMTP server")
 	remotePass = flag.String("remote_pass", "", "Password for authentication on outgoing SMTP server")
 )
 
 func handler(peer smtpd.Peer, env smtpd.Envelope) error {
 
+	host, _, _ := net.SplitHostPort(*remoteHost)
+
 	return smtp.SendMail(
-		fmt.Sprintf("%s:%d", *remoteHost, *remotePort),
-		smtp.PlainAuth("", *remoteUser, *remotePass, *remoteHost),
+		*remoteHost,
+		smtp.PlainAuth("", *remoteUser, *remotePass, host),
 		env.Sender,
 		env.Recipients,
 		env.Data,
