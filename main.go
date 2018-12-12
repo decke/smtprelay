@@ -27,11 +27,16 @@ var (
 
 func handler(peer smtpd.Peer, env smtpd.Envelope) error {
 
+	var auth smtp.Auth
 	host, _, _ := net.SplitHostPort(*remoteHost)
+
+	if *remoteUser != "" && *remotePass != "" {
+		auth = smtp.PlainAuth("", *remoteUser, *remotePass, host)
+	}
 
 	return smtp.SendMail(
 		*remoteHost,
-		smtp.PlainAuth("", *remoteUser, *remotePass, host),
+		auth,
 		env.Sender,
 		env.Recipients,
 		env.Data,
