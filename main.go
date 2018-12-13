@@ -59,10 +59,9 @@ func main() {
 		}
 
 		if strings.Index(listeners[i], "://") == -1 {
-			;
-		} else if strings.HasPrefix(listeners[i], "tls://") || strings.HasPrefix(listeners[i], "starttls://") {
-
-			listener = strings.TrimPrefix(listener, "tls://")
+			log.Printf("Listen on %s ...\n", listener)
+			go server.ListenAndServe(listener)
+		} else if strings.HasPrefix(listeners[i], "starttls://") {
 			listener = strings.TrimPrefix(listener, "starttls://")
 
 			if *localCert == "" || *localKey == "" {
@@ -74,16 +73,41 @@ func main() {
 				log.Fatal(err)
 			}
 
-			server.ForceTLS = *localForceTLS
 			server.TLSConfig = &tls.Config {
 				Certificates: [] tls.Certificate{cert},
 			}
+			server.ForceTLS = *localForceTLS
+
+			log.Printf("Listen on %s (STARTSSL) ...\n", listener)
+			lsnr, err := net.Listen("tcp", listener)
+			defer lsnr.Close()
+
+			go server.Serve(lsnr)
+		} else if strings.HasPrefix(listeners[i], "tls://") {
+
+			listener = strings.TrimPrefix(listener, "tls://")
+
+			if *localCert == "" || *localKey == "" {
+				log.Fatal("TLS certificate/key not defined in config")
+			}
+
+			cert, err := tls.LoadX509KeyPair(*localCert, *localKey)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			server.TLSConfig = &tls.Config {
+				Certificates: [] tls.Certificate{cert},
+			}
+
+			log.Printf("Listen on %s (TLS) ...\n", listener)
+			lsnr, err := tls.Listen("tcp", listener, server.TLSConfig)
+			defer lsnr.Close()
+
+			go server.Serve(lsnr)
 		} else {
 			log.Fatal("Unknown protocol in listener ", listener)
 		}
-
-		log.Printf("Listen on %s ...\n", listener)
-		go server.ListenAndServe(listener)
 	}
 
 	for true {
