@@ -1,4 +1,4 @@
-github.com/decke/smtpd v0.0.0-20181214110435-1f3aff7474b8 h1:4cxncWOi/sMl5iIDeHSbZK2PaScLnkPtpFbLZKucRR0=
-github.com/decke/smtpd v0.0.0-20181214110435-1f3aff7474b8/go.mod h1:OyvvH44eeOtQNmo+Ab8VhaRJLi3nGCFurXqo4g3z/Go=
+github.com/decke/smtpd v0.0.0-20181214133143-d31026ec9e90 h1:H7niJ19LWP946XZlzxhmVAD/VWZ/DZNjl2Ne1vtsNj8=
+github.com/decke/smtpd v0.0.0-20181214133143-d31026ec9e90/go.mod h1:OyvvH44eeOtQNmo+Ab8VhaRJLi3nGCFurXqo4g3z/Go=
 github.com/vharitonsky/iniflags v0.0.0-20180513140207-a33cd0b5f3de h1:fkw+7JkxF3U1GzQoX9h69Wvtvxajo5Rbzy6+YMMzPIg=
 github.com/vharitonsky/iniflags v0.0.0-20180513140207-a33cd0b5f3de/go.mod h1:irMhzlTz8+fVFj6CH2AN2i+WI5S6wWFtK3MBCIxIpyI=
