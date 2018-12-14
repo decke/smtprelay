@@ -34,6 +34,8 @@ func handler(peer smtpd.Peer, env smtpd.Envelope) error {
 		auth = smtp.PlainAuth("", *remoteUser, *remotePass, host)
 	}
 
+	env.AddReceivedLine(peer)
+
 	return smtp.SendMail(
 		*remoteHost,
 		auth,
