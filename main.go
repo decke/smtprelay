@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/decke/smtpd"
+	"github.com/chrj/smtpd"
 	"github.com/vharitonsky/iniflags"
 )
 
