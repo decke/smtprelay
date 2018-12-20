@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/smtp"
 	"os"
+	"regexp"
 	"strings"
 	"time"
 
@@ -29,6 +30,8 @@ var (
 	localKey   = flag.String("local_key", "", "SSL private key for STARTTLS/TLS")
 	localForceTLS = flag.Bool("local_forcetls", false, "Force STARTTLS (needs local_cert and local_key)")
 	allowedNets = flag.String("allowed_nets", "127.0.0.1/8 ::1/128", "Networks allowed to send mails")
+	allowedSender = flag.String("allowed_sender", "", "Regular expression for valid FROM EMail adresses")
+	allowedRecipients = flag.String("allowed_recipients", "", "Regular expression for valid TO EMail adresses")
 	remoteHost = flag.String("remote_host", "smtp.gmail.com:587", "Outgoing SMTP server")
 	remoteUser = flag.String("remote_user", "", "Username for authentication on outgoing SMTP server")
 	remotePass = flag.String("remote_pass", "", "Password for authentication on outgoing SMTP server")
@@ -57,11 +60,31 @@ func connectionChecker(peer smtpd.Peer) error {
 }
 
 func senderChecker(peer smtpd.Peer, addr string) error {
-	return nil
+	if *allowedSender == "" {
+		return nil
+	}
+
+	re := regexp.MustCompile(*allowedSender)
+
+	if re.MatchString(addr) {
+		return nil
+	} else {
+		return smtpd.Error{Code: 552, Message: "Denied"}
+	}
 }
 
 func recipientChecker(peer smtpd.Peer, addr string) error {
-	return nil
+	if *allowedRecipients == "" {
+		return nil
+	}
+
+	re := regexp.MustCompile(*allowedRecipients)
+
+	if re.MatchString(addr) {
+		return nil
+	} else {
+		return smtpd.Error{Code: 552, Message: "Denied"}
+	}
 }
 
 func mailHandler(peer smtpd.Peer, env smtpd.Envelope) error {
