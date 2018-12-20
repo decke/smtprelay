@@ -52,14 +52,17 @@ func main() {
 
 	iniflags.Parse()
 
+	logwriter := io.Writer(os.Stdout)
+
 	if *logFile != "" {
-		f, err := os.OpenFile(*logFile, os.O_RDWR | os.O_CREATE | os.O_APPEND, 0600)
+		f, err := os.OpenFile(*logFile, os.O_WRONLY | os.O_CREATE | os.O_APPEND, 0600)
 		if err != nil {
 			log.Fatalf("Error opening logfile: %v", err)
 		}
 		defer f.Close()
-		wrt := io.MultiWriter(os.Stdout, f)
-		log.SetOutput(wrt)
+
+		logwriter = io.MultiWriter(os.Stdout, f)
+		log.SetOutput(logwriter)
 	}
 
 	listeners := strings.Split(*listen, " ")
@@ -71,6 +74,7 @@ func main() {
 			Hostname:	*hostName,
 			WelcomeMessage: *welcomeMsg,
 			Handler:        handler,
+			ProtocolLogger: log.New(logwriter, "INBOUND: ", log.Lshortfile),
 		}
 
 		if strings.Index(listeners[i], "://") == -1 {
