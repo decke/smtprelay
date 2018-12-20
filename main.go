@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"crypto/tls"
 	"flag"
 	"fmt"
@@ -32,6 +33,7 @@ var (
 	allowedNets = flag.String("allowed_nets", "127.0.0.1/8 ::1/128", "Networks allowed to send mails")
 	allowedSender = flag.String("allowed_sender", "", "Regular expression for valid FROM EMail adresses")
 	allowedRecipients = flag.String("allowed_recipients", "", "Regular expression for valid TO EMail adresses")
+	allowedUsers = flag.String("allowed_users", "", "Path to file with valid users/passwords")
 	remoteHost = flag.String("remote_host", "smtp.gmail.com:587", "Outgoing SMTP server")
 	remoteUser = flag.String("remote_user", "", "Username for authentication on outgoing SMTP server")
 	remotePass = flag.String("remote_pass", "", "Password for authentication on outgoing SMTP server")
@@ -85,6 +87,30 @@ func recipientChecker(peer smtpd.Peer, addr string) error {
 	} else {
 		return smtpd.Error{Code: 552, Message: "Denied"}
 	}
+}
+
+func authChecker(peer smtpd.Peer, username string, password string) error {
+	file, err := os.Open(*allowedUsers)
+	if err != nil {
+		log.Printf("User file not found %v", err)
+		return smtpd.Error{Code: 552, Message: "Denied"}
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		parts := strings.Fields(scanner.Text())
+
+		if len(parts) != 2 {
+			continue
+		}
+
+		if username == parts[0] && password == parts[1] {
+			return nil
+		}
+	}
+
+	return smtpd.Error{Code: 552, Message: "Denied"}
 }
 
 func mailHandler(peer smtpd.Peer, env smtpd.Envelope) error {
@@ -142,6 +168,10 @@ func main() {
 			RecipientChecker:  recipientChecker,
 			Handler:           mailHandler,
 			ProtocolLogger:    log.New(logwriter, "INBOUND: ", log.Lshortfile),
+		}
+
+		if *allowedUsers != "" {
+			server.Authenticator = authChecker
 		}
 
 		if strings.Index(listeners[i], "://") == -1 {
