@@ -3,9 +3,11 @@ package main
 import (
 	"crypto/tls"
 	"flag"
+	"io"
 	"log"
 	"net"
 	"net/smtp"
+	"os"
 	"strings"
 	"time"
 
@@ -14,6 +16,7 @@ import (
 )
 
 var (
+	logFile    = flag.String("logfile", "/var/log/smtpd-proxy.log", "Path to logfile")
 	hostName   = flag.String("hostname", "localhost.localdomain", "Server hostname")
 	welcomeMsg = flag.String("welcome_msg", "", "Welcome message for SMTP session")
 	listen     = flag.String("listen", "127.0.0.1:25 [::1]:25", "Address and port to listen for incoming SMTP")
@@ -48,6 +51,16 @@ func handler(peer smtpd.Peer, env smtpd.Envelope) error {
 func main() {
 
 	iniflags.Parse()
+
+	if *logFile != "" {
+		f, err := os.OpenFile(*logFile, os.O_RDWR | os.O_CREATE | os.O_APPEND, 0600)
+		if err != nil {
+			log.Fatalf("Error opening logfile: %v", err)
+		}
+		defer f.Close()
+		wrt := io.MultiWriter(os.Stdout, f)
+		log.SetOutput(wrt)
+	}
 
 	listeners := strings.Split(*listen, " ")
 
