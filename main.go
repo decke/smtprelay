@@ -142,8 +142,6 @@ func main() {
 		os.Exit(0)
 	}
 
-	logwriter := io.Writer(os.Stdout)
-
 	if *logFile != "" {
 		f, err := os.OpenFile(*logFile, os.O_WRONLY | os.O_CREATE | os.O_APPEND, 0600)
 		if err != nil {
@@ -151,8 +149,7 @@ func main() {
 		}
 		defer f.Close()
 
-		logwriter = io.MultiWriter(os.Stdout, f)
-		log.SetOutput(logwriter)
+		log.SetOutput(io.MultiWriter(os.Stdout, f))
 	}
 
 	listeners := strings.Split(*listen, " ")
@@ -167,7 +164,6 @@ func main() {
 			SenderChecker:     senderChecker,
 			RecipientChecker:  recipientChecker,
 			Handler:           mailHandler,
-			ProtocolLogger:    log.New(logwriter, "INBOUND: ", log.Lshortfile),
 		}
 
 		if *allowedUsers != "" {
