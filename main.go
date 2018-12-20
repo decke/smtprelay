@@ -3,6 +3,7 @@ package main
 import (
 	"crypto/tls"
 	"flag"
+	"fmt"
 	"io"
 	"log"
 	"net"
@@ -13,6 +14,10 @@ import (
 
 	"github.com/chrj/smtpd"
 	"github.com/vharitonsky/iniflags"
+)
+
+const (
+	VERSION = "1.0.2-dev"
 )
 
 var (
@@ -26,6 +31,7 @@ var (
 	remoteHost = flag.String("remote_host", "smtp.gmail.com:587", "Outgoing SMTP server")
 	remoteUser = flag.String("remote_user", "", "Username for authentication on outgoing SMTP server")
 	remotePass = flag.String("remote_pass", "", "Password for authentication on outgoing SMTP server")
+	versionInfo= flag.Bool("version", false, "Show version information")
 )
 
 func handler(peer smtpd.Peer, env smtpd.Envelope) error {
@@ -51,6 +57,11 @@ func handler(peer smtpd.Peer, env smtpd.Envelope) error {
 func main() {
 
 	iniflags.Parse()
+
+	if *versionInfo {
+		fmt.Printf("smtpd-proxy/%s\n", VERSION)
+		os.Exit(0)
+	}
 
 	logwriter := io.Writer(os.Stdout)
 
