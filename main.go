@@ -114,6 +114,13 @@ func authChecker(peer smtpd.Peer, username string, password string) error {
 }
 
 func mailHandler(peer smtpd.Peer, env smtpd.Envelope) error {
+	peerIP := ""
+	if addr, ok := peer.Addr.(*net.TCPAddr); ok {
+		peerIP = addr.IP.String()
+	}
+
+	log.Printf("new mail from=<%s> to=%s peer=[%s]\n", env.Sender,
+		env.Recipients, peerIP)
 
 	var auth smtp.Auth
 	host, _, _ := net.SplitHostPort(*remoteHost)
@@ -123,6 +130,8 @@ func mailHandler(peer smtpd.Peer, env smtpd.Envelope) error {
 	}
 
 	env.AddReceivedLine(peer)
+
+	log.Printf("delivering using smarthost %s\n", *remoteHost)
 
 	return smtp.SendMail(
 		*remoteHost,
