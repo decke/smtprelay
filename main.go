@@ -28,7 +28,7 @@ var (
 	localCert  = flag.String("local_cert", "", "SSL certificate for STARTTLS/TLS")
 	localKey   = flag.String("local_key", "", "SSL private key for STARTTLS/TLS")
 	localForceTLS = flag.Bool("local_forcetls", false, "Force STARTTLS (needs local_cert and local_key)")
-        allowedNets = flag.String("allowed_nets", "127.0.0.1/8 ::1/128", "Networks allowed to send mails")
+	allowedNets = flag.String("allowed_nets", "127.0.0.1/8 ::1/128", "Networks allowed to send mails")
 	remoteHost = flag.String("remote_host", "smtp.gmail.com:587", "Outgoing SMTP server")
 	remoteUser = flag.String("remote_user", "", "Username for authentication on outgoing SMTP server")
 	remotePass = flag.String("remote_pass", "", "Password for authentication on outgoing SMTP server")
@@ -112,13 +112,13 @@ func main() {
 		listener := listeners[i]
 
 		server := &smtpd.Server{
-			Hostname:		*hostName,
-			WelcomeMessage:		*welcomeMsg,
-			ConnectionChecker:	connectionChecker,
-			SenderChecker:		senderChecker,
-			RecipientChecker:	recipientChecker,
-			Handler:		mailHandler,
-			ProtocolLogger:		log.New(logwriter, "INBOUND: ", log.Lshortfile),
+			Hostname:          *hostName,
+			WelcomeMessage:    *welcomeMsg,
+			ConnectionChecker: connectionChecker,
+			SenderChecker:     senderChecker,
+			RecipientChecker:  recipientChecker,
+			Handler:           mailHandler,
+			ProtocolLogger:    log.New(logwriter, "INBOUND: ", log.Lshortfile),
 		}
 
 		if strings.Index(listeners[i], "://") == -1 {
