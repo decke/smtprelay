@@ -43,9 +43,9 @@ func connectionChecker(peer smtpd.Peer) error {
 		return smtpd.Error{Code: 552, Message: "Denied"}
 	}
 
-        nets := strings.Split(*allowedNets, " ")
+	nets := strings.Split(*allowedNets, " ")
 
-        for i := range(nets) {
+	for i := range(nets) {
 		_, allowedNet, _ := net.ParseCIDR(nets[i])
 
 		if allowedNet.Contains(peerIP) {
