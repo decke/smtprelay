@@ -28,13 +28,43 @@ var (
 	localCert  = flag.String("local_cert", "", "SSL certificate for STARTTLS/TLS")
 	localKey   = flag.String("local_key", "", "SSL private key for STARTTLS/TLS")
 	localForceTLS = flag.Bool("local_forcetls", false, "Force STARTTLS (needs local_cert and local_key)")
+        allowedNets = flag.String("allowed_nets", "127.0.0.1/8 ::1/128", "Networks allowed to send mails")
 	remoteHost = flag.String("remote_host", "smtp.gmail.com:587", "Outgoing SMTP server")
 	remoteUser = flag.String("remote_user", "", "Username for authentication on outgoing SMTP server")
 	remotePass = flag.String("remote_pass", "", "Password for authentication on outgoing SMTP server")
 	versionInfo= flag.Bool("version", false, "Show version information")
 )
 
-func handler(peer smtpd.Peer, env smtpd.Envelope) error {
+func connectionChecker(peer smtpd.Peer) error {
+	var peerIP net.IP
+	if addr, ok := peer.Addr.(*net.TCPAddr); ok {
+		peerIP = net.ParseIP(addr.IP.String())
+	} else {
+		return smtpd.Error{Code: 552, Message: "Denied"}
+	}
+
+        nets := strings.Split(*allowedNets, " ")
+
+        for i := range(nets) {
+		_, allowedNet, _ := net.ParseCIDR(nets[i])
+
+		if allowedNet.Contains(peerIP) {
+			return nil
+		}
+	}
+
+	return smtpd.Error{Code: 552, Message: "Denied"}
+}
+
+func senderChecker(peer smtpd.Peer, addr string) error {
+	return nil
+}
+
+func recipientChecker(peer smtpd.Peer, addr string) error {
+	return nil
+}
+
+func mailHandler(peer smtpd.Peer, env smtpd.Envelope) error {
 
 	var auth smtp.Auth
 	host, _, _ := net.SplitHostPort(*remoteHost)
@@ -82,10 +112,13 @@ func main() {
 		listener := listeners[i]
 
 		server := &smtpd.Server{
-			Hostname:	*hostName,
-			WelcomeMessage: *welcomeMsg,
-			Handler:        handler,
-			ProtocolLogger: log.New(logwriter, "INBOUND: ", log.Lshortfile),
+			Hostname:		*hostName,
+			WelcomeMessage:		*welcomeMsg,
+			ConnectionChecker:	connectionChecker,
+			SenderChecker:		senderChecker,
+			RecipientChecker:	recipientChecker,
+			Handler:		mailHandler,
+			ProtocolLogger:		log.New(logwriter, "INBOUND: ", log.Lshortfile),
 		}
 
 		if strings.Index(listeners[i], "://") == -1 {
