@@ -45,7 +45,7 @@ func connectionChecker(peer smtpd.Peer) error {
 	if addr, ok := peer.Addr.(*net.TCPAddr); ok {
 		peerIP = net.ParseIP(addr.IP.String())
 	} else {
-		return smtpd.Error{Code: 552, Message: "Denied"}
+		return smtpd.Error{Code: 421, Message: "Denied"}
 	}
 
 	nets := strings.Split(*allowedNets, " ")
@@ -58,7 +58,7 @@ func connectionChecker(peer smtpd.Peer) error {
 		}
 	}
 
-	return smtpd.Error{Code: 552, Message: "Denied"}
+	return smtpd.Error{Code: 421, Message: "Denied"}
 }
 
 func senderChecker(peer smtpd.Peer, addr string) error {
@@ -71,7 +71,7 @@ func senderChecker(peer smtpd.Peer, addr string) error {
 	if re.MatchString(addr) {
 		return nil
 	} else {
-		return smtpd.Error{Code: 552, Message: "Denied"}
+		return smtpd.Error{Code: 451, Message: "Bad sender address"}
 	}
 }
 
@@ -85,7 +85,7 @@ func recipientChecker(peer smtpd.Peer, addr string) error {
 	if re.MatchString(addr) {
 		return nil
 	} else {
-		return smtpd.Error{Code: 552, Message: "Denied"}
+		return smtpd.Error{Code: 451, Message: "Bad recipient address"}
 	}
 }
 
@@ -93,7 +93,7 @@ func authChecker(peer smtpd.Peer, username string, password string) error {
 	file, err := os.Open(*allowedUsers)
 	if err != nil {
 		log.Printf("User file not found %v", err)
-		return smtpd.Error{Code: 552, Message: "Denied"}
+		return smtpd.Error{Code: 535, Message: "Authentication credentials invalid"}
 	}
 	defer file.Close()
 
@@ -110,7 +110,7 @@ func authChecker(peer smtpd.Peer, username string, password string) error {
 		}
 	}
 
-	return smtpd.Error{Code: 552, Message: "Denied"}
+	return smtpd.Error{Code: 535, Message: "Authentication credentials invalid"}
 }
 
 func mailHandler(peer smtpd.Peer, env smtpd.Envelope) error {
@@ -133,13 +133,19 @@ func mailHandler(peer smtpd.Peer, env smtpd.Envelope) error {
 
 	log.Printf("delivering using smarthost %s\n", *remoteHost)
 
-	return smtp.SendMail(
+	err := smtp.SendMail(
 		*remoteHost,
 		auth,
 		env.Sender,
 		env.Recipients,
 		env.Data,
 	)
+	if err != nil {
+		log.Printf("delivery failed: %v\n", err);
+		return smtpd.Error{Code: 554, Message: "Forwarding failed"}
+	}
+
+	return nil
 }
 
 func main() {
