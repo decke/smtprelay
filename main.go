@@ -145,6 +145,8 @@ func mailHandler(peer smtpd.Peer, env smtpd.Envelope) error {
 		return smtpd.Error{Code: 554, Message: "Forwarding failed"}
 	}
 
+	log.Printf("%s delivery successful\n", env.Recipients)
+
 	return nil
 }
 
