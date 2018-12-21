@@ -1,10 +1,30 @@
 # smtp-proxy
 
-Simple Go SMTP relay/proxy server that accepts mails via SMTP
-and forwards directly to another SMTP server.
+Simple Golang based SMTP relay/proxy server that accepts mail via SMTP
+and forwards it directly to another SMTP server.
+
+
+## Why another SMTP server?
+
+Outgoing mails are usually send via SMTP to an MTA (Mail Transfer Agent)
+which is one of Postfix, Exim, Sendmail or OpenSMTPD on UNIX/Linux in most
+cases. You really don't want to setup and maintain any of those full blown
+kitchensinks yourself because they are complex, fragile and hard to
+configure.
+
+My use case is simple. I need to send automatically generated mails from
+cron via msmtp/sSMTP/dma, mails from various services and network printers
+to GMail without giving away my GMail credentials to each device which
+produces mail.
+
 
 ## Main features
 
-* STARTTLS/TLS support
+* Supports incoming SMTPS/TLS (465), STARTTLS (587) and unencrypted SMTP (25)
+* Checks for sender, receiver, client IP
+* Authentication support with file (LOGIN, PLAIN)
+* Enforce encryption for authentication
+* Supports outgoing STARTTLS (587) and unencrypted SMTP (25)
+* Forwards all mail to a smarthost (GMail, MailGun or any other SMTP server)
+* Small codebase (smtp-proxy ~250 LoC, chrj/smtpd ~1200 LoC)
 * IPv6 support
-* Forward to GMail, MailGun or any other SMTP server
