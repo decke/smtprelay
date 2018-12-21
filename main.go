@@ -66,13 +66,17 @@ func senderChecker(peer smtpd.Peer, addr string) error {
 		return nil
 	}
 
-	re := regexp.MustCompile(*allowedSender)
+	re, err := regexp.Compile(*allowedSender)
+	if err != nil {
+		log.Printf("allowed_sender invalid: %v\n", err)
+		return smtpd.Error{Code: 451, Message: "Bad sender address"}
+	}
 
 	if re.MatchString(addr) {
 		return nil
-	} else {
-		return smtpd.Error{Code: 451, Message: "Bad sender address"}
 	}
+
+	return smtpd.Error{Code: 451, Message: "Bad sender address"}
 }
 
 func recipientChecker(peer smtpd.Peer, addr string) error {
@@ -80,13 +84,17 @@ func recipientChecker(peer smtpd.Peer, addr string) error {
 		return nil
 	}
 
-	re := regexp.MustCompile(*allowedRecipients)
+	re, err := regexp.Compile(*allowedRecipients)
+	if err != nil {
+		log.Printf("allowed_recipients invalid: %v\n", err)
+		return smtpd.Error{Code: 451, Message: "Bad recipient address"}
+	}
 
 	if re.MatchString(addr) {
 		return nil
-	} else {
-		return smtpd.Error{Code: 451, Message: "Bad recipient address"}
 	}
+
+	return smtpd.Error{Code: 451, Message: "Bad recipient address"}
 }
 
 func authChecker(peer smtpd.Peer, username string, password string) error {
