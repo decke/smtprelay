@@ -145,7 +145,7 @@ func mailHandler(peer smtpd.Peer, env smtpd.Envelope) error {
 
 	log.Printf("delivering using smarthost %s\n", *remoteHost)
 
-	err := smtp.SendMail(
+	err := SendMail(
 		*remoteHost,
 		auth,
 		env.Sender,
