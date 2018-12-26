@@ -326,21 +326,42 @@ func SendMail(addr string, a smtp.Auth, from string, to []string, msg []byte) er
 			return err
 		}
 	}
-	c, err := Dial(addr)
+	host, port, err := net.SplitHostPort(addr)
 	if err != nil {
 		return err
 	}
-	defer c.Close()
-	if err = c.hello(); err != nil {
-		return err
-	}
-	if ok, _ := c.Extension("STARTTLS"); ok {
-		config := &tls.Config{ServerName: c.serverName}
-		if testHookStartTLS != nil {
-			testHookStartTLS(config)
-		}
-		if err = c.StartTLS(config); err != nil {
+	var c *Client
+	if port == "465" || port == "smtps" {
+		config := &tls.Config{ServerName: host}
+		conn, err := tls.Dial("tcp", addr, config)
+		if err != nil {
 			return err
+		}
+		defer conn.Close()
+		c, err = NewClient(conn, host)
+		if err != nil {
+			return err
+		}
+		if err = c.hello(); err != nil {
+			return err
+		}
+	} else {
+		c, err = Dial(addr)
+		if err != nil {
+			return err
+		}
+		defer c.Close()
+		if err = c.hello(); err != nil {
+			return err
+		}
+		if ok, _ := c.Extension("STARTTLS"); ok {
+			config := &tls.Config{ServerName: c.serverName}
+			if testHookStartTLS != nil {
+				testHookStartTLS(config)
+			}
+			if err = c.StartTLS(config); err != nil {
+				return err
+			}
 		}
 	}
 	if a != nil && c.ext != nil {
