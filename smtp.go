@@ -297,7 +297,8 @@ func (c *Client) Data() (io.WriteCloser, error) {
 
 var testHookStartTLS func(*tls.Config) // nil, except for tests
 
-// SendMail connects to the server at addr, switches to TLS if
+// SendMail connects to the server at addr with TLS when port 465 or
+// smtps is specified or unencrypted otherwise and switches to TLS if
 // possible, authenticates with the optional mechanism a if possible,
 // and then sends an email from address from, to addresses to, with
 // message msg.

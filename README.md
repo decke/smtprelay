@@ -20,11 +20,10 @@ produces mail.
 
 ## Main features
 
-* Supports incoming SMTPS/TLS (465), STARTTLS (587) and unencrypted SMTP (25)
+* Supports SMTPS/TLS (465), STARTTLS (587) and unencrypted SMTP (25)
 * Checks for sender, receiver, client IP
 * Authentication support with file (LOGIN, PLAIN)
 * Enforce encryption for authentication
-* Supports outgoing STARTTLS (587) and unencrypted SMTP (25)
 * Forwards all mail to a smarthost (GMail, MailGun or any other SMTP server)
 * Small codebase (smtp-proxy ~250 LoC, chrj/smtpd ~1200 LoC)
 * IPv6 support
