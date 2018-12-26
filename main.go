@@ -122,6 +122,10 @@ func authChecker(peer smtpd.Peer, username string, password string) error {
 }
 
 func mailHandler(peer smtpd.Peer, env smtpd.Envelope) error {
+	if *allowedUsers != "" && peer.Username == "" {
+		return smtpd.Error{Code: 530, Message: "Authentication Required"}
+	}
+
 	peerIP := ""
 	if addr, ok := peer.Addr.(*net.TCPAddr); ok {
 		peerIP = addr.IP.String()
