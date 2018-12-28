@@ -63,6 +63,31 @@ func connectionChecker(peer smtpd.Peer) error {
 }
 
 func senderChecker(peer smtpd.Peer, addr string) error {
+	// check sender address from auth file if user is authenticated
+	if *allowedUsers != "" && peer.Username != "" {
+		file, err := os.Open(*allowedUsers)
+		if err != nil {
+			log.Printf("User file not found %v", err)
+			return smtpd.Error{Code: 451, Message: "Bad sender address"}
+		}
+		defer file.Close()
+
+		scanner := bufio.NewScanner(file)
+		for scanner.Scan() {
+			parts := strings.Fields(scanner.Text())
+
+			if len(parts) != 3 {
+				continue
+			}
+
+			if peer.Username == parts[0] {
+				if strings.ToLower(addr) != strings.ToLower(parts[2])  {
+					return smtpd.Error{Code: 451, Message: "Bad sender address"}
+				}
+			}
+		}
+	}
+
 	if *allowedSender == "" {
 		return nil
 	}
