@@ -16,6 +16,7 @@ import (
 
 	"github.com/chrj/smtpd"
 	"github.com/vharitonsky/iniflags"
+	"golang.org/x/crypto/bcrypt"
 )
 
 const (
@@ -113,8 +114,10 @@ func authChecker(peer smtpd.Peer, username string, password string) error {
 			continue
 		}
 
-		if username == parts[0] && password == parts[1] {
-			return nil
+		if username == parts[0] {
+			if bcrypt.CompareHashAndPassword([]byte(parts[1]), []byte(password)) == nil {
+				return nil
+			}
 		}
 	}
 

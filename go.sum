@@ -3,3 +3,5 @@ github.com/chrj/smtpd v0.1.2/go.mod h1:jt4ydELuZmqhn9hn3YpEPV1dY00aOB+Q1nWXnBDFK
 github.com/eaigner/dkim v0.0.0-20150301120808-6fe4a7ee9cfb/go.mod h1:FSCIHbrqk7D01Mj8y/jW+NS1uoCerr+ad+IckTHTFf4=
 github.com/vharitonsky/iniflags v0.0.0-20180513140207-a33cd0b5f3de h1:fkw+7JkxF3U1GzQoX9h69Wvtvxajo5Rbzy6+YMMzPIg=
 github.com/vharitonsky/iniflags v0.0.0-20180513140207-a33cd0b5f3de/go.mod h1:irMhzlTz8+fVFj6CH2AN2i+WI5S6wWFtK3MBCIxIpyI=
+golang.org/x/crypto v0.0.0-20181203042331-505ab145d0a9 h1:mKdxBk7AujPs8kU4m80U72y/zjbZ3UcXC7dClwKbUI0=
+golang.org/x/crypto v0.0.0-20181203042331-505ab145d0a9/go.mod h1:6SG95UA2DQfeDnfUPMdvaQW0Q7yPrPDi9nlGo2tz2b4=
