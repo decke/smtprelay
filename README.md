@@ -25,5 +25,5 @@ produces mail.
 * Authentication support with file (LOGIN, PLAIN)
 * Enforce encryption for authentication
 * Forwards all mail to a smarthost (GMail, MailGun or any other SMTP server)
-* Small codebase (smtp-proxy ~300 LoC, chrj/smtpd ~1200 LoC)
+* Small codebase
 * IPv6 support

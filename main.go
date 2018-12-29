@@ -1,9 +1,7 @@
-package main
+package smtpproxy
 
 import (
-	"bufio"
 	"crypto/tls"
-	"flag"
 	"fmt"
 	"io"
 	"log"
@@ -15,30 +13,6 @@ import (
 	"time"
 
 	"github.com/chrj/smtpd"
-	"github.com/vharitonsky/iniflags"
-	"golang.org/x/crypto/bcrypt"
-)
-
-const (
-	VERSION = "1.1.1-dev"
-)
-
-var (
-	logFile    = flag.String("logfile", "/var/log/smtpd-proxy.log", "Path to logfile")
-	hostName   = flag.String("hostname", "localhost.localdomain", "Server hostname")
-	welcomeMsg = flag.String("welcome_msg", "", "Welcome message for SMTP session")
-	listen     = flag.String("listen", "127.0.0.1:25 [::1]:25", "Address and port to listen for incoming SMTP")
-	localCert  = flag.String("local_cert", "", "SSL certificate for STARTTLS/TLS")
-	localKey   = flag.String("local_key", "", "SSL private key for STARTTLS/TLS")
-	localForceTLS = flag.Bool("local_forcetls", false, "Force STARTTLS (needs local_cert and local_key)")
-	allowedNets = flag.String("allowed_nets", "127.0.0.1/8 ::1/128", "Networks allowed to send mails")
-	allowedSender = flag.String("allowed_sender", "", "Regular expression for valid FROM EMail adresses")
-	allowedRecipients = flag.String("allowed_recipients", "", "Regular expression for valid TO EMail adresses")
-	allowedUsers = flag.String("allowed_users", "", "Path to file with valid users/passwords")
-	remoteHost = flag.String("remote_host", "smtp.gmail.com:587", "Outgoing SMTP server")
-	remoteUser = flag.String("remote_user", "", "Username for authentication on outgoing SMTP server")
-	remotePass = flag.String("remote_pass", "", "Password for authentication on outgoing SMTP server")
-	versionInfo= flag.Bool("version", false, "Show version information")
 )
 
 func connectionChecker(peer smtpd.Peer) error {
@@ -65,26 +39,13 @@ func connectionChecker(peer smtpd.Peer) error {
 func senderChecker(peer smtpd.Peer, addr string) error {
 	// check sender address from auth file if user is authenticated
 	if *allowedUsers != "" && peer.Username != "" {
-		file, err := os.Open(*allowedUsers)
+		_, email, err := AuthFetch(peer.Username)
 		if err != nil {
-			log.Printf("User file not found %v", err)
 			return smtpd.Error{Code: 451, Message: "Bad sender address"}
 		}
-		defer file.Close()
 
-		scanner := bufio.NewScanner(file)
-		for scanner.Scan() {
-			parts := strings.Fields(scanner.Text())
-
-			if len(parts) != 3 {
-				continue
-			}
-
-			if peer.Username == parts[0] {
-				if strings.ToLower(addr) != strings.ToLower(parts[2])  {
-					return smtpd.Error{Code: 451, Message: "Bad sender address"}
-				}
-			}
+		if strings.ToLower(addr) != strings.ToLower(email) {
+			return smtpd.Error{Code: 451, Message: "Bad sender address"}
 		}
 	}
 
@@ -124,29 +85,11 @@ func recipientChecker(peer smtpd.Peer, addr string) error {
 }
 
 func authChecker(peer smtpd.Peer, username string, password string) error {
-	file, err := os.Open(*allowedUsers)
+	err := AuthCheckPassword(username, password)
 	if err != nil {
-		log.Printf("User file not found %v", err)
 		return smtpd.Error{Code: 535, Message: "Authentication credentials invalid"}
 	}
-	defer file.Close()
-
-	scanner := bufio.NewScanner(file)
-	for scanner.Scan() {
-		parts := strings.Fields(scanner.Text())
-
-		if len(parts) != 2 {
-			continue
-		}
-
-		if username == parts[0] {
-			if bcrypt.CompareHashAndPassword([]byte(parts[1]), []byte(password)) == nil {
-				return nil
-			}
-		}
-	}
-
-	return smtpd.Error{Code: 535, Message: "Authentication credentials invalid"}
+	return nil
 }
 
 func mailHandler(peer smtpd.Peer, env smtpd.Envelope) error {
@@ -192,7 +135,7 @@ func mailHandler(peer smtpd.Peer, env smtpd.Envelope) error {
 
 func main() {
 
-	iniflags.Parse()
+	ConfigLoad()
 
 	if *versionInfo {
 		fmt.Printf("smtpd-proxy/%s\n", VERSION)
@@ -224,6 +167,11 @@ func main() {
 		}
 
 		if *allowedUsers != "" {
+			err := AuthLoadFile(*allowedUsers)
+			if err != nil {
+				log.Fatalf("Authentication file: %s\n", err)
+			}
+
 			server.Authenticator = authChecker
 		}
 
