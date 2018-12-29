@@ -13,7 +13,7 @@
 // Some external packages provide more functionality. See:
 //
 //   https://godoc.org/?q=smtp
-package smtpproxy
+package smtprelay
 
 import (
 	"crypto/tls"

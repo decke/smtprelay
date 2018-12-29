@@ -1,4 +1,4 @@
-package smtpproxy
+package smtprelay
 
 import (
 	"bufio"

@@ -1,4 +1,4 @@
-package smtpproxy
+package smtprelay
 
 import (
 	"crypto/tls"
@@ -138,7 +138,7 @@ func main() {
 	ConfigLoad()
 
 	if *versionInfo {
-		fmt.Printf("smtpd-proxy/%s\n", VERSION)
+		fmt.Printf("smtprelay/%s\n", VERSION)
 		os.Exit(0)
 	}
 
