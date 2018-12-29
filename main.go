@@ -1,4 +1,4 @@
-package smtprelay
+package main
 
 import (
 	"crypto/tls"
