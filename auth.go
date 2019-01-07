@@ -25,7 +25,7 @@ func AuthLoadFile(file string) error {
 }
 
 func AuthReady() bool {
-	return (filename == "")
+	return (filename != "")
 }
 
 func AuthFetch(username string) (string, string, error) {

@@ -87,6 +87,7 @@ func recipientChecker(peer smtpd.Peer, addr string) error {
 func authChecker(peer smtpd.Peer, username string, password string) error {
 	err := AuthCheckPassword(username, password)
 	if err != nil {
+		log.Printf("Auth error: %v\n", err)
 		return smtpd.Error{Code: 535, Message: "Authentication credentials invalid"}
 	}
 	return nil
