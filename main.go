@@ -222,6 +222,9 @@ func main() {
 
 			log.Printf("Listen on %s (STARTSSL) ...\n", listener)
 			lsnr, err := net.Listen("tcp", listener)
+			if err != nil {
+				log.Fatal(err)
+			}
 			defer lsnr.Close()
 
 			go server.Serve(lsnr)
@@ -268,6 +271,9 @@ func main() {
 
 			log.Printf("Listen on %s (TLS) ...\n", listener)
 			lsnr, err := tls.Listen("tcp", listener, server.TLSConfig)
+			if err != nil {
+				log.Fatal(err)
+			}
 			defer lsnr.Close()
 
 			go server.Serve(lsnr)
