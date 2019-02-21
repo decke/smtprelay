@@ -25,7 +25,7 @@ func connectionChecker(peer smtpd.Peer) error {
 
 	nets := strings.Split(*allowedNets, " ")
 
-	for i := range(nets) {
+	for i := range nets {
 		_, allowedNet, _ := net.ParseCIDR(nets[i])
 
 		if allowedNet.Contains(peerIP) {
@@ -125,7 +125,7 @@ func mailHandler(peer smtpd.Peer, env smtpd.Envelope) error {
 		env.Data,
 	)
 	if err != nil {
-		log.Printf("delivery failed: %v\n", err);
+		log.Printf("delivery failed: %v\n", err)
 		return smtpd.Error{Code: 554, Message: "Forwarding failed"}
 	}
 
@@ -144,7 +144,7 @@ func main() {
 	}
 
 	if *logFile != "" {
-		f, err := os.OpenFile(*logFile, os.O_WRONLY | os.O_CREATE | os.O_APPEND, 0600)
+		f, err := os.OpenFile(*logFile, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0600)
 		if err != nil {
 			log.Fatalf("Error opening logfile: %v", err)
 		}
@@ -155,7 +155,7 @@ func main() {
 
 	listeners := strings.Split(*listen, " ")
 
-	for i := range(listeners) {
+	for i := range listeners {
 		listener := listeners[i]
 
 		server := &smtpd.Server{
@@ -191,13 +191,13 @@ func main() {
 				log.Fatal(err)
 			}
 
-			server.TLSConfig = &tls.Config {
+			server.TLSConfig = &tls.Config{
 				PreferServerCipherSuites: true,
 				MinVersion:               tls.VersionTLS11,
 
 				// Ciphersuites as defined in stock Go but without 3DES
 				// https://golang.org/src/crypto/tls/cipher_suites.go
-				CipherSuites: []uint16 {
+				CipherSuites: []uint16{
 					tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,
 					tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305,
 					tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
@@ -216,7 +216,7 @@ func main() {
 					tls.TLS_RSA_WITH_AES_128_CBC_SHA,
 					tls.TLS_RSA_WITH_AES_256_CBC_SHA,
 				},
-				Certificates: [] tls.Certificate{cert},
+				Certificates: []tls.Certificate{cert},
 			}
 			server.ForceTLS = *localForceTLS
 
@@ -238,13 +238,13 @@ func main() {
 				log.Fatal(err)
 			}
 
-			server.TLSConfig = &tls.Config {
+			server.TLSConfig = &tls.Config{
 				PreferServerCipherSuites: true,
 				MinVersion:               tls.VersionTLS11,
 
 				// Ciphersuites as defined in stock Go but without 3DES
 				// https://golang.org/src/crypto/tls/cipher_suites.go
-				CipherSuites: []uint16 {
+				CipherSuites: []uint16{
 					tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,
 					tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305,
 					tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
@@ -263,7 +263,7 @@ func main() {
 					tls.TLS_RSA_WITH_AES_128_CBC_SHA,
 					tls.TLS_RSA_WITH_AES_256_CBC_SHA,
 				},
-				Certificates: [] tls.Certificate{cert},
+				Certificates: []tls.Certificate{cert},
 			}
 
 			log.Printf("Listen on %s (TLS) ...\n", listener)

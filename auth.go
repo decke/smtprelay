@@ -29,7 +29,7 @@ func AuthReady() bool {
 }
 
 func AuthFetch(username string) (string, string, error) {
-	if ! AuthReady() {
+	if !AuthReady() {
 		return "", "", errors.New("Authentication file not specified. Call LoadFile() first")
 	}
 
@@ -65,4 +65,3 @@ func AuthCheckPassword(username string, secret string) error {
 	}
 	return errors.New("Password invalid")
 }
-
