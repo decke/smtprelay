@@ -1,4 +1,4 @@
-module code.bluelife.at/decke/smtprelay
+module github.com/decke/smtprelay
 
 require (
 	github.com/chrj/smtpd v0.1.2
