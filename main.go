@@ -143,6 +143,30 @@ func mailHandler(peer smtpd.Peer, env smtpd.Envelope) error {
 }
 
 func main() {
+	// Ciphersuites as defined in stock Go but without 3DES and RC4
+	// https://golang.org/src/crypto/tls/cipher_suites.go
+	var tlsCipherSuites = []uint16{
+		tls.TLS_AES_128_GCM_SHA256,
+		tls.TLS_AES_256_GCM_SHA384,
+		tls.TLS_CHACHA20_POLY1305_SHA256,
+		tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
+		tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,
+		tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+		tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+		tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+		tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+		tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
+		tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
+		tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256,
+		tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,
+		tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
+		tls.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,
+		tls.TLS_RSA_WITH_AES_128_GCM_SHA256, // does not provide PFS
+		tls.TLS_RSA_WITH_AES_256_GCM_SHA384, // does not provide PFS
+		tls.TLS_RSA_WITH_AES_128_CBC_SHA256,
+		tls.TLS_RSA_WITH_AES_128_CBC_SHA,
+		tls.TLS_RSA_WITH_AES_256_CBC_SHA,
+	}
 
 	ConfigLoad()
 
@@ -202,29 +226,8 @@ func main() {
 			server.TLSConfig = &tls.Config{
 				PreferServerCipherSuites: true,
 				MinVersion:               tls.VersionTLS11,
-
-				// Ciphersuites as defined in stock Go but without 3DES
-				// https://golang.org/src/crypto/tls/cipher_suites.go
-				CipherSuites: []uint16{
-					tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,
-					tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305,
-					tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-					tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
-					tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-					tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
-					tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
-					tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
-					tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256,
-					tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,
-					tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
-					tls.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,
-					tls.TLS_RSA_WITH_AES_128_GCM_SHA256, // does not provide PFS
-					tls.TLS_RSA_WITH_AES_256_GCM_SHA384, // does not provide PFS
-					tls.TLS_RSA_WITH_AES_128_CBC_SHA256,
-					tls.TLS_RSA_WITH_AES_128_CBC_SHA,
-					tls.TLS_RSA_WITH_AES_256_CBC_SHA,
-				},
-				Certificates: []tls.Certificate{cert},
+				CipherSuites:             tlsCipherSuites,
+				Certificates:             []tls.Certificate{cert},
 			}
 			server.ForceTLS = *localForceTLS
 
@@ -252,32 +255,8 @@ func main() {
 			server.TLSConfig = &tls.Config{
 				PreferServerCipherSuites: true,
 				MinVersion:               tls.VersionTLS11,
-
-				// Ciphersuites as defined in stock Go but without 3DES and RC4
-				// https://golang.org/src/crypto/tls/cipher_suites.go
-				CipherSuites: []uint16{
-					tls.TLS_AES_128_GCM_SHA256,
-					tls.TLS_AES_256_GCM_SHA384,
-					tls.TLS_CHACHA20_POLY1305_SHA256,
-					tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
-					tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,
-					tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-					tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
-					tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-					tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
-					tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
-					tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
-					tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256,
-					tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,
-					tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
-					tls.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,
-					tls.TLS_RSA_WITH_AES_128_GCM_SHA256, // does not provide PFS
-					tls.TLS_RSA_WITH_AES_256_GCM_SHA384, // does not provide PFS
-					tls.TLS_RSA_WITH_AES_128_CBC_SHA256,
-					tls.TLS_RSA_WITH_AES_128_CBC_SHA,
-					tls.TLS_RSA_WITH_AES_256_CBC_SHA,
-				},
-				Certificates: []tls.Certificate{cert},
+				CipherSuites:             tlsCipherSuites,
+				Certificates:             []tls.Certificate{cert},
 			}
 
 			log.Printf("Listen on %s (TLS) ...\n", listener)
