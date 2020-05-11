@@ -1,5 +1,7 @@
 # smtprelay
 
+[![Go Report Card](https://goreportcard.com/badge/github.com/decke/smtprelay)](https://goreportcard.com/report/github.com/decke/smtprelay)
+
 Simple Golang based SMTP relay/proxy server that accepts mail via SMTP
 and forwards it directly to another SMTP server.
 
