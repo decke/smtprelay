@@ -25,6 +25,7 @@ var (
 	remoteHost        = flag.String("remote_host", "smtp.gmail.com:587", "Outgoing SMTP server")
 	remoteUser        = flag.String("remote_user", "", "Username for authentication on outgoing SMTP server")
 	remotePass        = flag.String("remote_pass", "", "Password for authentication on outgoing SMTP server")
+	remoteAuth        = flag.String("remote_auth", "plain", "Auth method on outgoing SMTP server (plain, login)")
 	remoteSender      = flag.String("remote_sender", "", "Sender e-mail address on outgoing SMTP server")
 	versionInfo       = flag.Bool("version", false, "Show version information")
 )

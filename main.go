@@ -110,7 +110,14 @@ func mailHandler(peer smtpd.Peer, env smtpd.Envelope) error {
 	host, _, _ := net.SplitHostPort(*remoteHost)
 
 	if *remoteUser != "" && *remotePass != "" {
-		auth = smtp.PlainAuth("", *remoteUser, *remotePass, host)
+		switch *remoteAuth {
+		case "plain":
+			auth = smtp.PlainAuth("", *remoteUser, *remotePass, host)
+		case "login":
+			auth = LoginAuth(*remoteUser, *remotePass)
+		default:
+			return smtpd.Error{Code: 530, Message: "Authentication method not supported"}
+		}
 	}
 
 	env.AddReceivedLine(peer)
