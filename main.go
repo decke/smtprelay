@@ -105,6 +105,15 @@ func mailHandler(peer smtpd.Peer, env smtpd.Envelope) error {
 	var auth smtp.Auth
 	host, _, _ := net.SplitHostPort(*remoteHost)
 
+	// if remotePass is not set, try reading it from env var
+	if *remotePass == "" {
+		log.Printf("attempting to read remote pass from REMOTE_PASS env var")
+		*remotePass = os.Getenv("REMOTE_PASS")
+		if *remotePass != "" {
+			log.Printf("found data in REMOTE_PASS env var")
+		}
+	}
+
 	if *remoteUser != "" && *remotePass != "" {
 		switch *remoteAuth {
 		case "plain":
