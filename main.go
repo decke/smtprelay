@@ -16,11 +16,17 @@ import (
 )
 
 func connectionChecker(peer smtpd.Peer) error {
+	if *allowedSender == "" {
+		// disable network check, and allow any peer
+		return nil
+	}
+
 	var peerIP net.IP
 	if addr, ok := peer.Addr.(*net.TCPAddr); ok {
 		peerIP = net.ParseIP(addr.IP.String())
 	} else {
-		return smtpd.Error{Code: 421, Message: "Denied"}
+		log.Printf("Denied - failed to parseIP")
+		return smtpd.Error{Code: 421, Message: "Denied - failed to parse IP"}
 	}
 
 	nets := strings.Split(*allowedNets, " ")
@@ -33,55 +39,62 @@ func connectionChecker(peer smtpd.Peer) error {
 		}
 	}
 
-	return smtpd.Error{Code: 421, Message: "Denied"}
+	log.Printf("IP out of allowed network range, peerIP:[%s]", peerIP)
+	return smtpd.Error{Code: 421, Message: "Denied - IP out of allowed network range"}
 }
 
 func senderChecker(peer smtpd.Peer, addr string) error {
+	if *allowedSender == "" {
+		// disable sender check, allow anyone to send mail
+		return nil
+	}
+
 	// check sender address from auth file if user is authenticated
 	if *allowedUsers != "" && peer.Username != "" {
 		_, email, err := AuthFetch(peer.Username)
 		if err != nil {
-			return smtpd.Error{Code: 451, Message: "Bad sender address"}
+			log.Printf("sender address not allowed")
+			return smtpd.Error{Code: 451, Message: "sender address not allowed"}
 		}
 
 		if strings.ToLower(addr) != strings.ToLower(email) {
-			return smtpd.Error{Code: 451, Message: "Bad sender address"}
+			log.Printf("sender address not allowed")
+			return smtpd.Error{Code: 451, Message: "sender address not allowed"}
 		}
-	}
-
-	if *allowedSender == "" {
-		return nil
 	}
 
 	re, err := regexp.Compile(*allowedSender)
 	if err != nil {
 		log.Printf("allowed_sender invalid: %v\n", err)
-		return smtpd.Error{Code: 451, Message: "Bad sender address"}
+		return smtpd.Error{Code: 451, Message: "sender address not allowed"}
 	}
 
 	if re.MatchString(addr) {
 		return nil
 	}
 
-	return smtpd.Error{Code: 451, Message: "Bad sender address"}
+	log.Printf("sender address not allowed")
+	return smtpd.Error{Code: 451, Message: "sender address not allowed"}
 }
 
 func recipientChecker(peer smtpd.Peer, addr string) error {
 	if *allowedRecipients == "" {
+		// allow any recipient, disable recipient check
 		return nil
 	}
 
 	re, err := regexp.Compile(*allowedRecipients)
 	if err != nil {
 		log.Printf("allowed_recipients invalid: %v\n", err)
-		return smtpd.Error{Code: 451, Message: "Bad recipient address"}
+		return smtpd.Error{Code: 451, Message: "Invalid recipient address"}
 	}
 
 	if re.MatchString(addr) {
 		return nil
 	}
 
-	return smtpd.Error{Code: 451, Message: "Bad recipient address"}
+	log.Printf("Invalid recipient address, addr: %s", addr)
+	return smtpd.Error{Code: 451, Message: "Invalid recipient address"}
 }
 
 func authChecker(peer smtpd.Peer, username string, password string) error {
@@ -104,15 +117,6 @@ func mailHandler(peer smtpd.Peer, env smtpd.Envelope) error {
 
 	var auth smtp.Auth
 	host, _, _ := net.SplitHostPort(*remoteHost)
-
-	// if remotePass is not set, try reading it from env var
-	if *remotePass == "" {
-		log.Printf("attempting to read remote pass from REMOTE_PASS env var")
-		*remotePass = os.Getenv("REMOTE_PASS")
-		if *remotePass != "" {
-			log.Printf("found data in REMOTE_PASS env var")
-		}
-	}
 
 	if *remoteUser != "" && *remotePass != "" {
 		switch *remoteAuth {
@@ -155,7 +159,7 @@ func mailHandler(peer smtpd.Peer, env smtpd.Envelope) error {
 }
 
 func main() {
-	// Ciphersuites as defined in stock Go but without 3DES and RC4
+	// Cipher suites as defined in stock Go but without 3DES and RC4
 	// https://golang.org/src/crypto/tls/cipher_suites.go
 	var tlsCipherSuites = []uint16{
 		tls.TLS_AES_128_GCM_SHA256,
@@ -187,6 +191,9 @@ func main() {
 		os.Exit(0)
 	}
 
+	// print version on start
+	log.Printf("starting smtprelay, version: %s\n", VERSION)
+
 	if *logFile != "" {
 		f, err := os.OpenFile(*logFile, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0600)
 		if err != nil {
@@ -202,6 +209,7 @@ func main() {
 	for i := range listeners {
 		listener := listeners[i]
 
+		// TODO: expose smtpd config options (timeouts, message size, and recipients)
 		server := &smtpd.Server{
 			Hostname:          *hostName,
 			WelcomeMessage:    *welcomeMsg,
@@ -284,6 +292,7 @@ func main() {
 		}
 	}
 
+	// TODO: handle SIGTERM and gracefully shutdown
 	for true {
 		time.Sleep(time.Minute)
 	}
