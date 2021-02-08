@@ -7,6 +7,7 @@ import (
 	"log"
 	"net"
 	"net/smtp"
+	"net/textproto"
 	"os"
 	"regexp"
 	"strings"
@@ -14,6 +15,12 @@ import (
 
 	"github.com/chrj/smtpd"
 )
+
+func observeErr(err smtpd.Error) smtpd.Error {
+	errorsCounter.WithLabelValues(fmt.Sprintf("%v", err.Code)).Inc()
+
+	return err
+}
 
 func connectionChecker(peer smtpd.Peer) error {
 	if *allowedSender == "" {
@@ -26,7 +33,7 @@ func connectionChecker(peer smtpd.Peer) error {
 		peerIP = net.ParseIP(addr.IP.String())
 	} else {
 		log.Printf("Denied - failed to parseIP")
-		return smtpd.Error{Code: 421, Message: "Denied - failed to parse IP"}
+		return observeErr(smtpd.Error{Code: 421, Message: "Denied - failed to parse IP"})
 	}
 
 	nets := strings.Split(*allowedNets, " ")
@@ -40,7 +47,14 @@ func connectionChecker(peer smtpd.Peer) error {
 	}
 
 	log.Printf("IP out of allowed network range, peerIP:[%s]", peerIP)
-	return smtpd.Error{Code: 421, Message: "Denied - IP out of allowed network range"}
+	return observeErr(smtpd.Error{Code: 421, Message: "Denied - IP out of allowed network range"})
+}
+
+func heloChecker(peer smtpd.Peer, addr string) error {
+	// every SMTP request starts with a HELO
+	requestsCounter.Inc()
+
+	return nil
 }
 
 func senderChecker(peer smtpd.Peer, addr string) error {
@@ -54,19 +68,19 @@ func senderChecker(peer smtpd.Peer, addr string) error {
 		_, email, err := AuthFetch(peer.Username)
 		if err != nil {
 			log.Printf("sender address not allowed")
-			return smtpd.Error{Code: 451, Message: "sender address not allowed"}
+			return observeErr(smtpd.Error{Code: 451, Message: "sender address not allowed"})
 		}
 
 		if strings.ToLower(addr) != strings.ToLower(email) {
 			log.Printf("sender address not allowed")
-			return smtpd.Error{Code: 451, Message: "sender address not allowed"}
+			return observeErr(smtpd.Error{Code: 451, Message: "sender address not allowed"})
 		}
 	}
 
 	re, err := regexp.Compile(*allowedSender)
 	if err != nil {
 		log.Printf("allowed_sender invalid: %v\n", err)
-		return smtpd.Error{Code: 451, Message: "sender address not allowed"}
+		return observeErr(smtpd.Error{Code: 451, Message: "sender address not allowed"})
 	}
 
 	if re.MatchString(addr) {
@@ -74,7 +88,7 @@ func senderChecker(peer smtpd.Peer, addr string) error {
 	}
 
 	log.Printf("sender address not allowed")
-	return smtpd.Error{Code: 451, Message: "sender address not allowed"}
+	return observeErr(smtpd.Error{Code: 451, Message: "sender address not allowed"})
 }
 
 func recipientChecker(peer smtpd.Peer, addr string) error {
@@ -86,7 +100,7 @@ func recipientChecker(peer smtpd.Peer, addr string) error {
 	re, err := regexp.Compile(*allowedRecipients)
 	if err != nil {
 		log.Printf("allowed_recipients invalid: %v\n", err)
-		return smtpd.Error{Code: 451, Message: "Invalid recipient address"}
+		return observeErr(smtpd.Error{Code: 451, Message: "Invalid recipient address"})
 	}
 
 	if re.MatchString(addr) {
@@ -94,14 +108,14 @@ func recipientChecker(peer smtpd.Peer, addr string) error {
 	}
 
 	log.Printf("Invalid recipient address, addr: %s", addr)
-	return smtpd.Error{Code: 451, Message: "Invalid recipient address"}
+	return observeErr(smtpd.Error{Code: 451, Message: "Invalid recipient address"})
 }
 
 func authChecker(peer smtpd.Peer, username string, password string) error {
 	err := AuthCheckPassword(username, password)
 	if err != nil {
 		log.Printf("Auth error: %v\n", err)
-		return smtpd.Error{Code: 535, Message: "Authentication credentials invalid"}
+		return observeErr(smtpd.Error{Code: 535, Message: "Authentication credentials invalid"})
 	}
 	return nil
 }
@@ -125,7 +139,7 @@ func mailHandler(peer smtpd.Peer, env smtpd.Envelope) error {
 		case "login":
 			auth = LoginAuth(*remoteUser, *remotePass)
 		default:
-			return smtpd.Error{Code: 530, Message: "Authentication method not supported"}
+			return observeErr(smtpd.Error{Code: 530, Message: "Authentication method not supported"})
 		}
 	}
 
@@ -141,6 +155,7 @@ func mailHandler(peer smtpd.Peer, env smtpd.Envelope) error {
 		sender = *remoteSender
 	}
 
+	start := time.Now()
 	err := SendMail(
 		*remoteHost,
 		auth,
@@ -148,17 +163,32 @@ func mailHandler(peer smtpd.Peer, env smtpd.Envelope) error {
 		env.Recipients,
 		env.Data,
 	)
+
 	if err != nil {
+		var smtpError smtpd.Error
 		log.Printf("delivery failed: %v\n", err)
-		return smtpd.Error{Code: 554, Message: "Forwarding failed"}
+
+		switch err.(type) {
+		case *textproto.Error:
+			err := err.(*textproto.Error)
+			smtpError = smtpd.Error{Code: err.Code, Message: err.Msg}
+		default:
+			smtpError = smtpd.Error{Code: 554, Message: "Forwarding failed"}
+		}
+
+		durationHistogram.WithLabelValues(fmt.Sprintf("%v", smtpError.Code)).Observe(time.Now().Sub(start).Seconds())
+		return observeErr(smtpError)
 	}
 
+	durationHistogram.WithLabelValues("none").Observe(time.Now().Sub(start).Seconds())
 	log.Printf("%s delivery successful\n", env.Recipients)
 
 	return nil
 }
 
 func main() {
+	go handleMetrics()
+
 	// Cipher suites as defined in stock Go but without 3DES and RC4
 	// https://golang.org/src/crypto/tls/cipher_suites.go
 	var tlsCipherSuites = []uint16{
@@ -213,6 +243,7 @@ func main() {
 		server := &smtpd.Server{
 			Hostname:          *hostName,
 			WelcomeMessage:    *welcomeMsg,
+			HeloChecker:	   heloChecker,
 			ConnectionChecker: connectionChecker,
 			SenderChecker:     senderChecker,
 			RecipientChecker:  recipientChecker,

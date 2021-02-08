@@ -17,6 +17,7 @@ var (
 	hostName      = flag.String("hostname", "localhost.localdomain", "Server hostname")
 	welcomeMsg    = flag.String("welcome_msg", "", "Welcome message for SMTP session")
 	listen        = flag.String("listen", "127.0.0.1:25 [::1]:25", "Address and port to listen for incoming SMTP")
+	metricsListen = flag.String("metrics_listen", ":8080", "Address and port to listen for metrics exposition")
 	localCert     = flag.String("local_cert", "", "SSL certificate for STARTTLS/TLS")
 	localKey      = flag.String("local_key", "", "SSL private key for STARTTLS/TLS")
 	localForceTLS = flag.Bool("local_forcetls", false, "Force STARTTLS (needs local_cert and local_key)")
