@@ -9,23 +9,28 @@ import (
 )
 
 var (
-	requestsCounter prometheus.Counter
-	failuresCounter *prometheus.CounterVec
+	requestsCounter   prometheus.Counter
+	errorsCounter     *prometheus.CounterVec
+	durationHistogram *prometheus.HistogramVec
 )
 
 func registerMetrics() {
 	requestsCounter = promauto.NewCounter(prometheus.CounterOpts{
 		Namespace: "smtprelay",
-		Subsystem: "delivery",
 		Name:      "requests_count",
 		Help:      "count of message relay requests",
 	})
 
-	failuresCounter = promauto.NewCounterVec(prometheus.CounterOpts{
+	errorsCounter = promauto.NewCounterVec(prometheus.CounterOpts{
 		Namespace: "smtprelay",
-		Subsystem: "delivery",
-		Name:      "failures_count",
-		Help:      "count of unsuccessfully delivered messages",
+		Name:      "errors_count",
+		Help:      "count of unsuccessfully relayed messages",
+	}, []string{"error_code"})
+
+	durationHistogram = promauto.NewHistogramVec(prometheus.HistogramOpts{
+		Namespace: "smtprelay",
+		Name:      "request_duration",
+		Buckets:   prometheus.DefBuckets,
 	}, []string{"error_code"})
 }
 

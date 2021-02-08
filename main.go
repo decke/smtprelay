@@ -3,7 +3,6 @@ package main
 import (
 	"crypto/tls"
 	"fmt"
-	"github.com/prometheus/client_golang/prometheus"
 	"io"
 	"log"
 	"net"
@@ -18,9 +17,7 @@ import (
 )
 
 func observeErr(err smtpd.Error) smtpd.Error {
-	failuresCounter.With(prometheus.Labels{
-		"error_code": fmt.Sprintf("%v", err.Code),
-	}).Inc()
+	errorsCounter.WithLabelValues(fmt.Sprintf("%v", err.Code)).Inc()
 
 	return err
 }
@@ -51,6 +48,13 @@ func connectionChecker(peer smtpd.Peer) error {
 
 	log.Printf("IP out of allowed network range, peerIP:[%s]", peerIP)
 	return observeErr(smtpd.Error{Code: 421, Message: "Denied - IP out of allowed network range"})
+}
+
+func heloChecker(peer smtpd.Peer, addr string) error {
+	// every SMTP request starts with a HELO
+	requestsCounter.Inc()
+
+	return nil
 }
 
 func senderChecker(peer smtpd.Peer, addr string) error {
@@ -151,8 +155,7 @@ func mailHandler(peer smtpd.Peer, env smtpd.Envelope) error {
 		sender = *remoteSender
 	}
 
-	requestsCounter.Inc()
-
+	start := time.Now()
 	err := SendMail(
 		*remoteHost,
 		auth,
@@ -160,18 +163,24 @@ func mailHandler(peer smtpd.Peer, env smtpd.Envelope) error {
 		env.Recipients,
 		env.Data,
 	)
+
 	if err != nil {
+		var smtpError smtpd.Error
 		log.Printf("delivery failed: %v\n", err)
 
 		switch err.(type) {
 		case *textproto.Error:
 			err := err.(*textproto.Error)
-			return observeErr(smtpd.Error{Code: err.Code, Message: err.Msg})
+			smtpError = smtpd.Error{Code: err.Code, Message: err.Msg}
 		default:
-			return observeErr(smtpd.Error{Code: 554, Message: "Forwarding failed"})
+			smtpError = smtpd.Error{Code: 554, Message: "Forwarding failed"}
 		}
+
+		durationHistogram.WithLabelValues(fmt.Sprintf("%v", smtpError.Code)).Observe(time.Now().Sub(start).Seconds())
+		return observeErr(smtpError)
 	}
 
+	durationHistogram.WithLabelValues("none").Observe(time.Now().Sub(start).Seconds())
 	log.Printf("%s delivery successful\n", env.Recipients)
 
 	return nil
@@ -234,6 +243,7 @@ func main() {
 		server := &smtpd.Server{
 			Hostname:          *hostName,
 			WelcomeMessage:    *welcomeMsg,
+			HeloChecker:	   heloChecker,
 			ConnectionChecker: connectionChecker,
 			SenderChecker:     senderChecker,
 			RecipientChecker:  recipientChecker,
