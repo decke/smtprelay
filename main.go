@@ -7,8 +7,10 @@ import (
 	"net/smtp"
 	"net/textproto"
 	"os"
+	"os/signal"
 	"regexp"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/chrj/smtpd"
@@ -268,10 +270,11 @@ func main() {
 	log.WithField("version", VERSION).
 		Debug("starting smtprelay")
 
-	listeners := strings.Split(*listen, " ")
+	var listeners []net.Listener
+	addresses := strings.Split(*listen, " ")
 
-	for i := range listeners {
-		listener := listeners[i]
+	for i := range addresses {
+		address := addresses[i]
 
 		// TODO: expose smtpd config options (timeouts, message size, and recipients)
 		server := &smtpd.Server{
@@ -295,13 +298,14 @@ func main() {
 			server.Authenticator = authChecker
 		}
 
-		if strings.Index(listeners[i], "://") == -1 {
-			log.WithField("address", listener).
+		if strings.Index(addresses[i], "://") == -1 {
+			log.WithField("address", address).
 				Info("listening on address")
 
-			go server.ListenAndServe(listener)
-		} else if strings.HasPrefix(listeners[i], "starttls://") {
-			listener = strings.TrimPrefix(listener, "starttls://")
+			listener := listenOnAddr(server, address)
+			listeners = append(listeners, listener)
+		} else if strings.HasPrefix(addresses[i], "starttls://") {
+			address = strings.TrimPrefix(address, "starttls://")
 
 			if *localCert == "" || *localKey == "" {
 				log.WithField("cert_file", *localCert).
@@ -323,19 +327,14 @@ func main() {
 			}
 			server.ForceTLS = *localForceTLS
 
-			log.WithField("address", listener).
+			log.WithField("address", address).
 				Info("listening on STARTTLS address")
 
-			lsnr, err := net.Listen("tcp", listener)
-			if err != nil {
-				log.Fatal(err)
-			}
-			defer lsnr.Close()
+			listener := listenOnAddr(server, address)
+			listeners = append(listeners, listener)
+		} else if strings.HasPrefix(addresses[i], "tls://") {
 
-			go server.Serve(lsnr)
-		} else if strings.HasPrefix(listeners[i], "tls://") {
-
-			listener = strings.TrimPrefix(listener, "tls://")
+			address = strings.TrimPrefix(address, "tls://")
 
 			if *localCert == "" || *localKey == "" {
 				log.WithField("cert_file", *localCert).
@@ -356,24 +355,69 @@ func main() {
 				Certificates:             []tls.Certificate{cert},
 			}
 
-			log.WithField("address", listener).
+			log.WithField("address", address).
 				Info("listening on TLS address")
 
-			lsnr, err := tls.Listen("tcp", listener, server.TLSConfig)
-			if err != nil {
-				log.Fatal(err)
-			}
-			defer lsnr.Close()
+			listener := listenOnTLSAddr(server, address, server.TLSConfig)
+			listeners = append(listeners, listener)
 
-			go server.Serve(lsnr)
 		} else {
-			log.WithField("address", listener).
+			log.WithField("address", address).
 				Fatal("unknown protocol in address")
 		}
 	}
 
-	// TODO: handle SIGTERM and gracefully shutdown
-	for true {
-		time.Sleep(time.Minute)
+	handleSignals(listeners)
+}
+
+func listenOnAddr(server *smtpd.Server, addr string) net.Listener {
+	listener, err := net.Listen("tcp", addr)
+	if err != nil {
+		log.WithField("err", err).
+			WithField("address", addr).
+			Fatal("could not listen on address")
 	}
+
+	go server.Serve(listener)
+	return listener
+}
+
+func listenOnTLSAddr(server *smtpd.Server, addr string, config *tls.Config) net.Listener {
+	listener, err := tls.Listen("tcp", addr, config)
+	if err != nil {
+		log.WithField("err", err).
+			WithField("address", addr).
+			Fatal("could not listen on address")
+	}
+
+	go server.Serve(listener)
+	return listener
+}
+
+func handleSignals(servers []net.Listener) {
+	sigs := make(chan os.Signal, 1)
+	done := make(chan bool, 1)
+
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+
+	go func() {
+		sig := <-sigs
+
+		for _, s := range servers {
+			log.WithField("signal", sig).
+				WithField("addr", s.Addr().String()).
+				Warn("closing listener in response to received signal")
+
+			err := s.Close()
+			if err != nil {
+				log.WithField("err", err).
+					Warn("could not close listener")
+			}
+		}
+
+		done <- true
+	}()
+
+	<-done
+	os.Exit(0)
 }
