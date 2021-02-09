@@ -1,11 +1,11 @@
 package main
 
 import (
+	"net/http"
+
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"log"
-	"net/http"
 )
 
 var (
@@ -39,6 +39,7 @@ func handleMetrics() {
 
 	http.Handle("/metrics", promhttp.Handler())
 	if err := http.ListenAndServe(*metricsListen, nil); err != nil {
-		log.Fatalf("cannot publish metrics: %s", err.Error())
+		log.WithField("err", err.Error()).
+			Fatal("cannot publish metrics")
 	}
 }

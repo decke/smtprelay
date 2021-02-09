@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"log"
 	"os"
 
 	"github.com/vharitonsky/iniflags"
@@ -36,20 +35,22 @@ var (
 	remoteAuth   = flag.String("remote_auth", "plain", "Auth method on outgoing SMTP server (plain, login)")
 	remoteSender = flag.String("remote_sender", "", "Sender e-mail address on outgoing SMTP server")
 	versionInfo  = flag.Bool("version", false, "Show version information")
+	logLevel     = flag.String("log_level", "debug", "Minimum log level to output")
 )
 
 func ConfigLoad() {
-	log.Printf("loading config...")
 	iniflags.Parse()
+
+	setupLogger()
 
 	// if remotePass is not set, try reading it from env var
 	if *remotePass == "" {
-		log.Printf("remote_pass not set, try REMOTE_PASS env var")
+		log.Debug("remote_pass not set, trying REMOTE_PASS env var")
 		*remotePass = os.Getenv("REMOTE_PASS")
 		if *remotePass != "" {
-			log.Printf("found data in REMOTE_PASS env var")
+			log.Debug("found data in REMOTE_PASS env var")
 		} else {
-			log.Printf("no data found in REMOTE_PASS env var")
+			log.Debug("no data found in REMOTE_PASS env var")
 		}
 	}
 }
