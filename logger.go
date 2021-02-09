@@ -1,6 +1,7 @@
 package main
 
 import (
+	"os"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -12,6 +13,7 @@ var (
 
 func setupLogger() {
 	logger := logrus.New()
+	logger.SetOutput(os.Stdout)
 	logger.SetFormatter(&logrus.JSONFormatter{
 		TimestampFormat:   time.RFC3339Nano,
 		DisableHTMLEscape: true,
