@@ -12,7 +12,7 @@ const (
 )
 
 var (
-	logFile       = flag.String("logfile", "/var/log/smtprelay.log", "Path to logfile")
+	logFile       = flag.String("logfile", "/dev/stdout", "Path to logfile")
 	hostName      = flag.String("hostname", "localhost.localdomain", "Server hostname")
 	welcomeMsg    = flag.String("welcome_msg", "", "Welcome message for SMTP session")
 	listen        = flag.String("listen", "127.0.0.1:25 [::1]:25", "Address and port to listen for incoming SMTP")

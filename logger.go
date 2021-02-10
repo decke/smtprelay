@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"time"
 
@@ -13,7 +14,13 @@ var (
 
 func setupLogger() {
 	logger := logrus.New()
-	logger.SetOutput(os.Stdout)
+	writer, err := os.OpenFile(*logFile, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0644)
+	if err != nil {
+		fmt.Printf("cannot open log file: %s", err)
+		os.Exit(1)
+	}
+
+	logger.SetOutput(writer)
 	logger.SetFormatter(&logrus.JSONFormatter{
 		TimestampFormat:   time.RFC3339Nano,
 		DisableHTMLEscape: true,
@@ -23,10 +30,11 @@ func setupLogger() {
 
 	level, err := logrus.ParseLevel(*logLevel)
 	if err != nil {
-		logrus.SetLevel(logrus.DebugLevel)
+		level = logrus.DebugLevel
+
 		log.WithField("given_level", *logLevel).
 			Warn("could not parse log level, defaulting to 'debug'")
-	} else {
-		logrus.SetLevel(level)
 	}
+
+	logrus.SetLevel(level)
 }
