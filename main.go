@@ -36,15 +36,43 @@ func connectionChecker(peer smtpd.Peer) error {
 	return smtpd.Error{Code: 421, Message: "Denied"}
 }
 
+func addrAllowed(addr string, allowedAddrs []string) bool {
+	if allowedAddrs == nil {
+		return true
+	}
+
+	domidx := strings.LastIndex(addr, "@")
+	if domidx == -1 {
+		return false
+	}
+	domain := strings.ToLower(addr[domidx+1:])
+
+	for _, allowedAddr := range allowedAddrs {
+		allowedAddr = strings.ToLower(allowedAddr)
+
+		if strings.Index(allowedAddr, "@") == -1 {
+			if allowedAddr == domain {
+				return true
+			}
+		} else {
+			if allowedAddr == addr {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
 func senderChecker(peer smtpd.Peer, addr string) error {
 	// check sender address from auth file if user is authenticated
 	if *allowedUsers != "" && peer.Username != "" {
-		_, email, err := AuthFetch(peer.Username)
+		_, allowedAddrs, err := AuthFetch(peer.Username)
 		if err != nil {
 			return smtpd.Error{Code: 451, Message: "Bad sender address"}
 		}
 
-		if email != "" && strings.ToLower(addr) != strings.ToLower(email) {
+		if !addrAllowed(addr, allowedAddrs) {
 			return smtpd.Error{Code: 451, Message: "Bad sender address"}
 		}
 	}

@@ -30,14 +30,14 @@ func AuthReady() bool {
 
 // Returns bcrypt-hash, email
 // email can be empty in which case it is not checked
-func AuthFetch(username string) (string, string, error) {
+func AuthFetch(username string) (string, []string, error) {
 	if !AuthReady() {
-		return "", "", errors.New("Authentication file not specified. Call LoadFile() first")
+		return "", nil, errors.New("Authentication file not specified. Call LoadFile() first")
 	}
 
 	file, err := os.Open(filename)
 	if err != nil {
-		return "", "", err
+		return "", nil, err
 	}
 	defer file.Close()
 
@@ -54,16 +54,16 @@ func AuthFetch(username string) (string, string, error) {
 		}
 
 		hash := parts[1]
-		email := ""
+		email := []string(nil)
 
 		if len(parts) >= 3 {
-			email = parts[2]
+			email = strings.Split(parts[2], ",")
 		}
 
 		return hash, email, nil
 	}
 
-	return "", "", errors.New("User not found")
+	return "", nil, errors.New("User not found")
 }
 
 func AuthCheckPassword(username string, secret string) error {
