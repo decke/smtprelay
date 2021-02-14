@@ -59,9 +59,9 @@ func TestParseLine(t *testing.T) {
 		},
 		{
 			name: "Multiple allowed addrs",
-			line: "joe xxx joe@example.com,foo.example.com",
+			line: "joe xxx joe@example.com,@foo.example.com",
 			username: "joe",
-			addrs: []string{"joe@example.com", "foo.example.com"},
+			addrs: []string{"joe@example.com", "@foo.example.com"},
 		},
 	}
 

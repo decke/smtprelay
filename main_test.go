@@ -37,6 +37,17 @@ func TestAddrAllowedDifferentCase(t *testing.T) {
     }
 }
 
+func TestAddrAllowedLocal(t *testing.T) {
+	allowedAddrs := []string{"joe"}
+
+	if !addrAllowed("joe", allowedAddrs) {
+		t.FailNow()
+	}
+	if addrAllowed("bob", allowedAddrs) {
+		t.FailNow()
+	}
+}
+
 func TestAddrAllowedMulti(t *testing.T) {
 	allowedAddrs := []string{"joe@abc.com", "bob@def.com"}
 	if !addrAllowed("joe@abc.com", allowedAddrs) {
@@ -51,7 +62,7 @@ func TestAddrAllowedMulti(t *testing.T) {
 }
 
 func TestAddrAllowedSingleDomain(t *testing.T) {
-	allowedAddrs := []string{"abc.com"}
+	allowedAddrs := []string{"@abc.com"}
 	if !addrAllowed("joe@abc.com", allowedAddrs) {
 		t.FailNow()
 	}
@@ -61,7 +72,10 @@ func TestAddrAllowedSingleDomain(t *testing.T) {
 }
 
 func TestAddrAllowedMixed(t *testing.T) {
-	allowedAddrs := []string{"app@example.com", "appsrv.example.com"}
+	allowedAddrs := []string{"app", "app@example.com", "@appsrv.example.com"}
+	if !addrAllowed("app", allowedAddrs) {
+		t.FailNow()
+	}
 	if !addrAllowed("app@example.com", allowedAddrs) {
 		t.FailNow()
 	}

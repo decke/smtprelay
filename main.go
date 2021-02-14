@@ -38,27 +38,40 @@ func connectionChecker(peer smtpd.Peer) error {
 
 func addrAllowed(addr string, allowedAddrs []string) bool {
 	if allowedAddrs == nil {
+		// If absent, all addresses are allowed
 		return true
 	}
 
 	addr = strings.ToLower(addr)
 
-	domidx := strings.LastIndex(addr, "@")
-	if domidx == -1 {
-		return false
+	// Extract optional domain part
+	domain := ""
+	if idx := strings.LastIndex(addr, "@"); idx != -1 {
+		domain = strings.ToLower(addr[idx+1:])
 	}
-	domain := strings.ToLower(addr[domidx+1:])
 
+	// Test each address from allowedUsers file
 	for _, allowedAddr := range allowedAddrs {
 		allowedAddr = strings.ToLower(allowedAddr)
 
-		if strings.Index(allowedAddr, "@") == -1 {
-			if allowedAddr == domain {
+		// Three cases for allowedAddr format:
+		if idx := strings.Index(allowedAddr, "@"); idx == -1 {
+			// 1. local address (no @) -- must match exactly
+			if allowedAddr == addr {
 				return true
 			}
 		} else {
-			if allowedAddr == addr {
-				return true
+			if idx != 0 {
+				// 2. email address (user@domain.com) -- must match exactly
+				if allowedAddr == addr {
+					return true
+				}
+			} else {
+				// 3. domain (@domain.com) -- must match addr domain
+				allowedDomain := allowedAddr[idx+1:]
+				if allowedDomain == domain {
+					return true
+				}
 			}
 		}
 	}
