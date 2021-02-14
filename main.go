@@ -41,6 +41,8 @@ func addrAllowed(addr string, allowedAddrs []string) bool {
 		return true
 	}
 
+	addr = strings.ToLower(addr)
+
 	domidx := strings.LastIndex(addr, "@")
 	if domidx == -1 {
 		return false
