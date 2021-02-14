@@ -67,12 +67,12 @@ func addrAllowed(addr string, allowedAddrs []string) bool {
 func senderChecker(peer smtpd.Peer, addr string) error {
 	// check sender address from auth file if user is authenticated
 	if *allowedUsers != "" && peer.Username != "" {
-		_, allowedAddrs, err := AuthFetch(peer.Username)
+		user, err := AuthFetch(peer.Username)
 		if err != nil {
 			return smtpd.Error{Code: 451, Message: "Bad sender address"}
 		}
 
-		if !addrAllowed(addr, allowedAddrs) {
+		if !addrAllowed(addr, user.allowedAddresses) {
 			return smtpd.Error{Code: 451, Message: "Bad sender address"}
 		}
 	}
