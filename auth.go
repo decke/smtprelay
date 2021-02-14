@@ -34,6 +34,12 @@ func AuthReady() bool {
 	return (filename != "")
 }
 
+// Split a string and ignore empty results
+// https://stackoverflow.com/a/46798310/119527
+func splitstr(s string, sep rune) []string {
+	return strings.FieldsFunc(s, func(c rune) bool { return c == sep })
+}
+
 func parseLine(line string) *AuthUser {
 	parts := strings.Fields(line)
 
@@ -48,7 +54,7 @@ func parseLine(line string) *AuthUser {
 	}
 
 	if len(parts) >= 3 {
-		user.allowedAddresses = strings.Split(parts[2], ",")
+		user.allowedAddresses = splitstr(parts[2], ',')
 	}
 
 	return &user
