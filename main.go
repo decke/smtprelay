@@ -188,7 +188,7 @@ func mailHandler(peer smtpd.Peer, env smtpd.Envelope) error {
 	return nil
 }
 
-func main() {
+func getTLSConfig() *tls.Config {
 	// Ciphersuites as defined in stock Go but without 3DES and RC4
 	// https://golang.org/src/crypto/tls/cipher_suites.go
 	var tlsCipherSuites = []uint16{
@@ -214,6 +214,24 @@ func main() {
 		tls.TLS_RSA_WITH_AES_256_CBC_SHA,
 	}
 
+	if *localCert == "" || *localKey == "" {
+		log.Fatal("TLS certificate/key not defined in config")
+	}
+
+	cert, err := tls.LoadX509KeyPair(*localCert, *localKey)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return &tls.Config{
+		PreferServerCipherSuites: true,
+		MinVersion:               tls.VersionTLS11,
+		CipherSuites:             tlsCipherSuites,
+		Certificates:             []tls.Certificate{cert},
+	}
+}
+
+func main() {
 	ConfigLoad()
 
 	if *versionInfo {
@@ -260,24 +278,10 @@ func main() {
 		} else if strings.HasPrefix(listeners[i], "starttls://") {
 			listener = strings.TrimPrefix(listener, "starttls://")
 
-			if *localCert == "" || *localKey == "" {
-				log.Fatal("TLS certificate/key not defined in config")
-			}
-
-			cert, err := tls.LoadX509KeyPair(*localCert, *localKey)
-			if err != nil {
-				log.Fatal(err)
-			}
-
-			server.TLSConfig = &tls.Config{
-				PreferServerCipherSuites: true,
-				MinVersion:               tls.VersionTLS11,
-				CipherSuites:             tlsCipherSuites,
-				Certificates:             []tls.Certificate{cert},
-			}
+			server.TLSConfig = getTLSConfig()
 			server.ForceTLS = *localForceTLS
 
-			log.Printf("Listen on %s (STARTSSL) ...\n", listener)
+			log.Printf("Listen on %s (STARTTLS) ...\n", listener)
 			lsnr, err := net.Listen("tcp", listener)
 			if err != nil {
 				log.Fatal(err)
@@ -289,21 +293,7 @@ func main() {
 
 			listener = strings.TrimPrefix(listener, "tls://")
 
-			if *localCert == "" || *localKey == "" {
-				log.Fatal("TLS certificate/key not defined in config")
-			}
-
-			cert, err := tls.LoadX509KeyPair(*localCert, *localKey)
-			if err != nil {
-				log.Fatal(err)
-			}
-
-			server.TLSConfig = &tls.Config{
-				PreferServerCipherSuites: true,
-				MinVersion:               tls.VersionTLS11,
-				CipherSuites:             tlsCipherSuites,
-				Certificates:             []tls.Certificate{cert},
-			}
+			server.TLSConfig = getTLSConfig()
 
 			log.Printf("Listen on %s (TLS) ...\n", listener)
 			lsnr, err := tls.Listen("tcp", listener, server.TLSConfig)
