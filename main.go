@@ -274,7 +274,14 @@ func main() {
 
 		if strings.Index(listeners[i], "://") == -1 {
 			log.Printf("Listen on %s ...\n", listener)
-			go server.ListenAndServe(listener)
+
+			lsnr, err := net.Listen("tcp", listener)
+			if err != nil {
+				log.Fatal(err)
+			}
+			defer lsnr.Close()
+
+			go server.Serve(lsnr)
 		} else if strings.HasPrefix(listeners[i], "starttls://") {
 			listener = strings.TrimPrefix(listener, "starttls://")
 
