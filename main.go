@@ -272,16 +272,13 @@ func main() {
 			server.Authenticator = authChecker
 		}
 
+		var lsnr net.Listener
+		var err error
+
 		if strings.Index(listeners[i], "://") == -1 {
 			log.Printf("Listen on %s ...\n", listener)
 
-			lsnr, err := net.Listen("tcp", listener)
-			if err != nil {
-				log.Fatal(err)
-			}
-			defer lsnr.Close()
-
-			go server.Serve(lsnr)
+			lsnr, err = net.Listen("tcp", listener)
 		} else if strings.HasPrefix(listeners[i], "starttls://") {
 			listener = strings.TrimPrefix(listener, "starttls://")
 
@@ -289,30 +286,24 @@ func main() {
 			server.ForceTLS = *localForceTLS
 
 			log.Printf("Listen on %s (STARTTLS) ...\n", listener)
-			lsnr, err := net.Listen("tcp", listener)
-			if err != nil {
-				log.Fatal(err)
-			}
-			defer lsnr.Close()
-
-			go server.Serve(lsnr)
+			lsnr, err = net.Listen("tcp", listener)
 		} else if strings.HasPrefix(listeners[i], "tls://") {
-
 			listener = strings.TrimPrefix(listener, "tls://")
 
 			server.TLSConfig = getTLSConfig()
 
 			log.Printf("Listen on %s (TLS) ...\n", listener)
-			lsnr, err := tls.Listen("tcp", listener, server.TLSConfig)
-			if err != nil {
-				log.Fatal(err)
-			}
-			defer lsnr.Close()
-
-			go server.Serve(lsnr)
+			lsnr, err = tls.Listen("tcp", listener, server.TLSConfig)
 		} else {
 			log.Fatal("Unknown protocol in listener ", listener)
 		}
+
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer lsnr.Close()
+
+		go server.Serve(lsnr)
 	}
 
 	for true {
