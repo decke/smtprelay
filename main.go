@@ -257,6 +257,13 @@ func main() {
 		log.SetOutput(io.MultiWriter(os.Stdout, f))
 	}
 
+	// Load allowed users file
+	if *allowedUsers != "" {
+		err := AuthLoadFile(*allowedUsers)
+		if err != nil {
+			log.Fatalf("Authentication file: %s\n", err)
+		}
+	}
 
 	// Create a server for each desired listen address
 	for _, listenAddr := range strings.Split(*listen, " ") {
@@ -270,11 +277,6 @@ func main() {
 		}
 
 		if *allowedUsers != "" {
-			err := AuthLoadFile(*allowedUsers)
-			if err != nil {
-				log.Fatalf("Authentication file: %s\n", err)
-			}
-
 			server.Authenticator = authChecker
 		}
 
