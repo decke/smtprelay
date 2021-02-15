@@ -33,6 +33,7 @@ func connectionChecker(peer smtpd.Peer) error {
 		}
 	}
 
+	log.Printf("Connection from peer=[%s] denied: Not in allowed_nets\n", peerIP)
 	return smtpd.Error{Code: 421, Message: "Denied"}
 }
 
@@ -84,10 +85,13 @@ func senderChecker(peer smtpd.Peer, addr string) error {
 	if *allowedUsers != "" && peer.Username != "" {
 		user, err := AuthFetch(peer.Username)
 		if err != nil {
+			// Shouldn't happen: authChecker already validated username+password
 			return smtpd.Error{Code: 451, Message: "Bad sender address"}
 		}
 
 		if !addrAllowed(addr, user.allowedAddresses) {
+			log.Printf("Mail from=<%s> not allowed for authenticated user %s (%v)\n",
+				addr, peer.Username, peer.Addr)
 			return smtpd.Error{Code: 451, Message: "Bad sender address"}
 		}
 	}
@@ -106,6 +110,8 @@ func senderChecker(peer smtpd.Peer, addr string) error {
 		return nil
 	}
 
+	log.Printf("Mail from=<%s> not allowed by allowed_sender pattern for peer %v\n",
+		addr, peer.Addr)
 	return smtpd.Error{Code: 451, Message: "Bad sender address"}
 }
 
@@ -124,13 +130,15 @@ func recipientChecker(peer smtpd.Peer, addr string) error {
 		return nil
 	}
 
+	log.Printf("Mail to=<%s> not allowed by allowed_recipients pattern for peer %v\n",
+		addr, peer.Addr)
 	return smtpd.Error{Code: 451, Message: "Bad recipient address"}
 }
 
 func authChecker(peer smtpd.Peer, username string, password string) error {
 	err := AuthCheckPassword(username, password)
 	if err != nil {
-		log.Printf("Auth error: %v\n", err)
+		log.Printf("Auth error for peer %v: %v\n", peer.Addr, err)
 		return smtpd.Error{Code: 535, Message: "Authentication credentials invalid"}
 	}
 	return nil
