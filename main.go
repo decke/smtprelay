@@ -257,11 +257,9 @@ func main() {
 		log.SetOutput(io.MultiWriter(os.Stdout, f))
 	}
 
-	listeners := strings.Split(*listen, " ")
 
-	for i := range listeners {
-		listener := listeners[i]
-
+	// Create a server for each desired listen address
+	for _, listenAddr := range strings.Split(*listen, " ") {
 		server := &smtpd.Server{
 			Hostname:          *hostName,
 			WelcomeMessage:    *welcomeMsg,
@@ -283,27 +281,27 @@ func main() {
 		var lsnr net.Listener
 		var err error
 
-		if strings.Index(listeners[i], "://") == -1 {
-			log.Printf("Listen on %s ...\n", listener)
+		if strings.Index(listenAddr, "://") == -1 {
+			log.Printf("Listen on %s ...\n", listenAddr)
 
-			lsnr, err = net.Listen("tcp", listener)
-		} else if strings.HasPrefix(listeners[i], "starttls://") {
-			listener = strings.TrimPrefix(listener, "starttls://")
+			lsnr, err = net.Listen("tcp", listenAddr)
+		} else if strings.HasPrefix(listenAddr, "starttls://") {
+			listenAddr = strings.TrimPrefix(listenAddr, "starttls://")
 
 			server.TLSConfig = getTLSConfig()
 			server.ForceTLS = *localForceTLS
 
-			log.Printf("Listen on %s (STARTTLS) ...\n", listener)
-			lsnr, err = net.Listen("tcp", listener)
-		} else if strings.HasPrefix(listeners[i], "tls://") {
-			listener = strings.TrimPrefix(listener, "tls://")
+			log.Printf("Listen on %s (STARTTLS) ...\n", listenAddr)
+			lsnr, err = net.Listen("tcp", listenAddr)
+		} else if strings.HasPrefix(listenAddr, "tls://") {
+			listenAddr = strings.TrimPrefix(listenAddr, "tls://")
 
 			server.TLSConfig = getTLSConfig()
 
-			log.Printf("Listen on %s (TLS) ...\n", listener)
-			lsnr, err = tls.Listen("tcp", listener, server.TLSConfig)
+			log.Printf("Listen on %s (TLS) ...\n", listenAddr)
+			lsnr, err = tls.Listen("tcp", listenAddr, server.TLSConfig)
 		} else {
-			log.Fatal("Unknown protocol in listener ", listener)
+			log.Fatal("Unknown protocol in listen address ", listenAddr)
 		}
 
 		if err != nil {
