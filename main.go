@@ -33,6 +33,7 @@ func connectionChecker(peer smtpd.Peer) error {
 		}
 	}
 
+	log.Printf("Connection from peer=[%s] denied: Not in allowed_nets\n", peerIP)
 	return smtpd.Error{Code: 421, Message: "Denied"}
 }
 
@@ -84,10 +85,13 @@ func senderChecker(peer smtpd.Peer, addr string) error {
 	if *allowedUsers != "" && peer.Username != "" {
 		user, err := AuthFetch(peer.Username)
 		if err != nil {
+			// Shouldn't happen: authChecker already validated username+password
 			return smtpd.Error{Code: 451, Message: "Bad sender address"}
 		}
 
 		if !addrAllowed(addr, user.allowedAddresses) {
+			log.Printf("Mail from=<%s> not allowed for authenticated user %s (%v)\n",
+				addr, peer.Username, peer.Addr)
 			return smtpd.Error{Code: 451, Message: "Bad sender address"}
 		}
 	}
@@ -106,6 +110,8 @@ func senderChecker(peer smtpd.Peer, addr string) error {
 		return nil
 	}
 
+	log.Printf("Mail from=<%s> not allowed by allowed_sender pattern for peer %v\n",
+		addr, peer.Addr)
 	return smtpd.Error{Code: 451, Message: "Bad sender address"}
 }
 
@@ -124,13 +130,15 @@ func recipientChecker(peer smtpd.Peer, addr string) error {
 		return nil
 	}
 
+	log.Printf("Mail to=<%s> not allowed by allowed_recipients pattern for peer %v\n",
+		addr, peer.Addr)
 	return smtpd.Error{Code: 451, Message: "Bad recipient address"}
 }
 
 func authChecker(peer smtpd.Peer, username string, password string) error {
 	err := AuthCheckPassword(username, password)
 	if err != nil {
-		log.Printf("Auth error: %v\n", err)
+		log.Printf("Auth error for peer %v: %v\n", peer.Addr, err)
 		return smtpd.Error{Code: 535, Message: "Authentication credentials invalid"}
 	}
 	return nil
@@ -188,7 +196,7 @@ func mailHandler(peer smtpd.Peer, env smtpd.Envelope) error {
 	return nil
 }
 
-func main() {
+func getTLSConfig() *tls.Config {
 	// Ciphersuites as defined in stock Go but without 3DES and RC4
 	// https://golang.org/src/crypto/tls/cipher_suites.go
 	var tlsCipherSuites = []uint16{
@@ -214,6 +222,24 @@ func main() {
 		tls.TLS_RSA_WITH_AES_256_CBC_SHA,
 	}
 
+	if *localCert == "" || *localKey == "" {
+		log.Fatal("TLS certificate/key not defined in config")
+	}
+
+	cert, err := tls.LoadX509KeyPair(*localCert, *localKey)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return &tls.Config{
+		PreferServerCipherSuites: true,
+		MinVersion:               tls.VersionTLS11,
+		CipherSuites:             tlsCipherSuites,
+		Certificates:             []tls.Certificate{cert},
+	}
+}
+
+func main() {
 	ConfigLoad()
 
 	if *versionInfo {
@@ -231,11 +257,16 @@ func main() {
 		log.SetOutput(io.MultiWriter(os.Stdout, f))
 	}
 
-	listeners := strings.Split(*listen, " ")
+	// Load allowed users file
+	if *allowedUsers != "" {
+		err := AuthLoadFile(*allowedUsers)
+		if err != nil {
+			log.Fatalf("Authentication file: %s\n", err)
+		}
+	}
 
-	for i := range listeners {
-		listener := listeners[i]
-
+	// Create a server for each desired listen address
+	for _, listenAddr := range strings.Split(*listen, " ") {
 		server := &smtpd.Server{
 			Hostname:          *hostName,
 			WelcomeMessage:    *welcomeMsg,
@@ -246,76 +277,41 @@ func main() {
 		}
 
 		if *allowedUsers != "" {
-			err := AuthLoadFile(*allowedUsers)
-			if err != nil {
-				log.Fatalf("Authentication file: %s\n", err)
-			}
-
 			server.Authenticator = authChecker
 		}
 
-		if strings.Index(listeners[i], "://") == -1 {
-			log.Printf("Listen on %s ...\n", listener)
-			go server.ListenAndServe(listener)
-		} else if strings.HasPrefix(listeners[i], "starttls://") {
-			listener = strings.TrimPrefix(listener, "starttls://")
+		var lsnr net.Listener
+		var err error
 
-			if *localCert == "" || *localKey == "" {
-				log.Fatal("TLS certificate/key not defined in config")
-			}
+		if strings.Index(listenAddr, "://") == -1 {
+			log.Printf("Listen on %s ...\n", listenAddr)
 
-			cert, err := tls.LoadX509KeyPair(*localCert, *localKey)
-			if err != nil {
-				log.Fatal(err)
-			}
+			lsnr, err = net.Listen("tcp", listenAddr)
+		} else if strings.HasPrefix(listenAddr, "starttls://") {
+			listenAddr = strings.TrimPrefix(listenAddr, "starttls://")
 
-			server.TLSConfig = &tls.Config{
-				PreferServerCipherSuites: true,
-				MinVersion:               tls.VersionTLS11,
-				CipherSuites:             tlsCipherSuites,
-				Certificates:             []tls.Certificate{cert},
-			}
+			server.TLSConfig = getTLSConfig()
 			server.ForceTLS = *localForceTLS
 
-			log.Printf("Listen on %s (STARTSSL) ...\n", listener)
-			lsnr, err := net.Listen("tcp", listener)
-			if err != nil {
-				log.Fatal(err)
-			}
-			defer lsnr.Close()
+			log.Printf("Listen on %s (STARTTLS) ...\n", listenAddr)
+			lsnr, err = net.Listen("tcp", listenAddr)
+		} else if strings.HasPrefix(listenAddr, "tls://") {
+			listenAddr = strings.TrimPrefix(listenAddr, "tls://")
 
-			go server.Serve(lsnr)
-		} else if strings.HasPrefix(listeners[i], "tls://") {
+			server.TLSConfig = getTLSConfig()
 
-			listener = strings.TrimPrefix(listener, "tls://")
-
-			if *localCert == "" || *localKey == "" {
-				log.Fatal("TLS certificate/key not defined in config")
-			}
-
-			cert, err := tls.LoadX509KeyPair(*localCert, *localKey)
-			if err != nil {
-				log.Fatal(err)
-			}
-
-			server.TLSConfig = &tls.Config{
-				PreferServerCipherSuites: true,
-				MinVersion:               tls.VersionTLS11,
-				CipherSuites:             tlsCipherSuites,
-				Certificates:             []tls.Certificate{cert},
-			}
-
-			log.Printf("Listen on %s (TLS) ...\n", listener)
-			lsnr, err := tls.Listen("tcp", listener, server.TLSConfig)
-			if err != nil {
-				log.Fatal(err)
-			}
-			defer lsnr.Close()
-
-			go server.Serve(lsnr)
+			log.Printf("Listen on %s (TLS) ...\n", listenAddr)
+			lsnr, err = tls.Listen("tcp", listenAddr, server.TLSConfig)
 		} else {
-			log.Fatal("Unknown protocol in listener ", listener)
+			log.Fatal("Unknown protocol in listen address ", listenAddr)
 		}
+
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer lsnr.Close()
+
+		go server.Serve(lsnr)
 	}
 
 	for true {
