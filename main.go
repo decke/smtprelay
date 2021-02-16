@@ -209,17 +209,8 @@ func getTLSConfig() *tls.Config {
 		tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
 		tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
 		tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
-		tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
-		tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
-		tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256,
-		tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,
-		tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
-		tls.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,
 		tls.TLS_RSA_WITH_AES_128_GCM_SHA256, // does not provide PFS
 		tls.TLS_RSA_WITH_AES_256_GCM_SHA384, // does not provide PFS
-		tls.TLS_RSA_WITH_AES_128_CBC_SHA256,
-		tls.TLS_RSA_WITH_AES_128_CBC_SHA,
-		tls.TLS_RSA_WITH_AES_256_CBC_SHA,
 	}
 
 	if *localCert == "" || *localKey == "" {
@@ -233,7 +224,7 @@ func getTLSConfig() *tls.Config {
 
 	return &tls.Config{
 		PreferServerCipherSuites: true,
-		MinVersion:               tls.VersionTLS11,
+		MinVersion:               tls.VersionTLS12,
 		CipherSuites:             tlsCipherSuites,
 		Certificates:             []tls.Certificate{cert},
 	}
