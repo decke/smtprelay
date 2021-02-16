@@ -14,8 +14,8 @@ var (
 )
 
 type AuthUser struct {
-	username string
-	passwordHash string
+	username         string
+	passwordHash     string
 	allowedAddresses []string
 }
 
@@ -48,8 +48,8 @@ func parseLine(line string) *AuthUser {
 	}
 
 	user := AuthUser{
-		username: parts[0],
-		passwordHash: parts[1],
+		username:         parts[0],
+		passwordHash:     parts[1],
 		allowedAddresses: nil,
 	}
 

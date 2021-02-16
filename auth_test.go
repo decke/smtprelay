@@ -8,7 +8,7 @@ func stringsEqual(a, b []string) bool {
 	if len(a) != len(b) {
 		return false
 	}
-	for i, _ := range a {
+	for i := range a {
 		if a[i] != b[i] {
 			return false
 		}
@@ -18,50 +18,50 @@ func stringsEqual(a, b []string) bool {
 
 func TestParseLine(t *testing.T) {
 	var tests = []struct {
-		name string
+		name       string
 		expectFail bool
-		line string
-		username string
-		addrs []string
+		line       string
+		username   string
+		addrs      []string
 	}{
 		{
-			name: "Empty line",
+			name:       "Empty line",
 			expectFail: true,
-			line: "",
+			line:       "",
 		},
 		{
-			name: "Too few fields",
+			name:       "Too few fields",
 			expectFail: true,
-			line: "joe",
+			line:       "joe",
 		},
 		{
-			name: "Too many fields",
+			name:       "Too many fields",
 			expectFail: true,
-			line: "joe xxx joe@example.com whatsthis",
+			line:       "joe xxx joe@example.com whatsthis",
 		},
 		{
-			name: "Normal case",
-			line: "joe xxx joe@example.com",
+			name:     "Normal case",
+			line:     "joe xxx joe@example.com",
 			username: "joe",
-			addrs: []string{"joe@example.com"},
+			addrs:    []string{"joe@example.com"},
 		},
 		{
-			name: "No allowed addrs given",
-			line: "joe xxx",
+			name:     "No allowed addrs given",
+			line:     "joe xxx",
 			username: "joe",
-			addrs: []string{},
+			addrs:    []string{},
 		},
 		{
-			name: "Trailing comma",
-			line: "joe xxx joe@example.com,",
+			name:     "Trailing comma",
+			line:     "joe xxx joe@example.com,",
 			username: "joe",
-			addrs: []string{"joe@example.com"},
+			addrs:    []string{"joe@example.com"},
 		},
 		{
-			name: "Multiple allowed addrs",
-			line: "joe xxx joe@example.com,@foo.example.com",
+			name:     "Multiple allowed addrs",
+			line:     "joe xxx joe@example.com,@foo.example.com",
 			username: "joe",
-			addrs: []string{"joe@example.com", "@foo.example.com"},
+			addrs:    []string{"joe@example.com", "@foo.example.com"},
 		},
 	}
 
@@ -77,12 +77,12 @@ func TestParseLine(t *testing.T) {
 
 			if user.username != test.username {
 				t.Errorf("Testcase %d: Incorrect username: expected %v, got %v",
-						 i, test.username, user.username)
+					i, test.username, user.username)
 			}
 
 			if !stringsEqual(user.allowedAddresses, test.addrs) {
 				t.Errorf("Testcase %d: Incorrect addresses: expected %v, got %v",
-						 i, test.addrs, user.allowedAddresses)
+					i, test.addrs, user.allowedAddresses)
 			}
 		})
 	}

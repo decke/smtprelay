@@ -24,17 +24,17 @@ func TestAddrAllowedSingle(t *testing.T) {
 
 func TestAddrAllowedDifferentCase(t *testing.T) {
 	allowedAddrs := []string{"joe@abc.com"}
-    testAddrs := []string{
-        "joe@ABC.com",
-        "Joe@abc.com",
-        "JOE@abc.com",
-        "JOE@ABC.COM",
-    }
-    for _, addr := range testAddrs {
-        if !addrAllowed(addr, allowedAddrs) {
-            t.Errorf("Address %v not allowed, but should be", addr)
-        }
-    }
+	testAddrs := []string{
+		"joe@ABC.com",
+		"Joe@abc.com",
+		"JOE@abc.com",
+		"JOE@ABC.COM",
+	}
+	for _, addr := range testAddrs {
+		if !addrAllowed(addr, allowedAddrs) {
+			t.Errorf("Address %v not allowed, but should be", addr)
+		}
+	}
 }
 
 func TestAddrAllowedLocal(t *testing.T) {
