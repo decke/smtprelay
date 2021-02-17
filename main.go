@@ -234,7 +234,7 @@ func main() {
 	ConfigLoad()
 
 	if *versionInfo {
-		fmt.Printf("smtprelay/%s\n", VERSION)
+		fmt.Printf("smtprelay/%s (%s)\n", appVersion, buildTime)
 		os.Exit(0)
 	}
 
