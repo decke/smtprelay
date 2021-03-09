@@ -277,8 +277,6 @@ func generateUUID() string {
 }
 
 func getTLSConfig() *tls.Config {
-	go handleMetrics()
-
 	// Cipher suites as defined in stock Go but without 3DES and RC4
 	// https://golang.org/src/crypto/tls/cipher_suites.go
 	var tlsCipherSuites = []uint16{
@@ -324,13 +322,14 @@ func main() {
 	log.WithField("version", VERSION).
 		Debug("starting smtprelay")
 
+	go handleMetrics()
+
 	var listeners []net.Listener
 	addresses := strings.Split(*listen, " ")
 
 	for i := range addresses {
 		address := addresses[i]
 
-		// TODO: expose smtpd config options (timeouts, message size, and recipients)
 		server := &smtpd.Server{
 			Hostname:          *hostName,
 			WelcomeMessage:    *welcomeMsg,
@@ -361,24 +360,7 @@ func main() {
 		} else if strings.HasPrefix(addresses[i], "starttls://") {
 			address = strings.TrimPrefix(address, "starttls://")
 
-			if *localCert == "" || *localKey == "" {
-				log.WithField("cert_file", *localCert).
-					WithField("key_file", *localKey).
-					Fatal("TLS certificate/key file not defined in config")
-			}
-
-			cert, err := tls.LoadX509KeyPair(*localCert, *localKey)
-			if err != nil {
-				log.WithField("error", err).
-					Fatal("cannot load X509 keypair")
-			}
-
-			server.TLSConfig = &tls.Config{
-				PreferServerCipherSuites: true,
-				MinVersion:               tls.VersionTLS11,
-				CipherSuites:             tlsCipherSuites,
-				Certificates:             []tls.Certificate{cert},
-			}
+			server.TLSConfig = getTLSConfig()
 			server.ForceTLS = *localForceTLS
 
 			log.WithField("address", address).
@@ -389,25 +371,7 @@ func main() {
 		} else if strings.HasPrefix(addresses[i], "tls://") {
 
 			address = strings.TrimPrefix(address, "tls://")
-
-			if *localCert == "" || *localKey == "" {
-				log.WithField("cert_file", *localCert).
-					WithField("key_file", *localKey).
-					Fatal("TLS certificate/key file not defined in config")
-			}
-
-			cert, err := tls.LoadX509KeyPair(*localCert, *localKey)
-			if err != nil {
-				log.WithField("error", err).
-					Fatal("cannot load X509 keypair")
-			}
-
-			server.TLSConfig = &tls.Config{
-				PreferServerCipherSuites: true,
-				MinVersion:               tls.VersionTLS11,
-				CipherSuites:             tlsCipherSuites,
-				Certificates:             []tls.Certificate{cert},
-			}
+			server.TLSConfig = getTLSConfig()
 
 			log.WithField("address", address).
 				Info("listening on TLS address")
