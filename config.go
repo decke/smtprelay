@@ -7,8 +7,9 @@ import (
 	"github.com/vharitonsky/iniflags"
 )
 
-const (
-	VERSION = "1.4.0"
+var (
+	appVersion = "unknown"
+	buildTime  = "unknown"
 )
 
 var (

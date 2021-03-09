@@ -60,6 +60,49 @@ func heloChecker(peer smtpd.Peer, addr string) error {
 	return nil
 }
 
+func addrAllowed(addr string, allowedAddrs []string) bool {
+	if allowedAddrs == nil {
+		// If absent, all addresses are allowed
+		return true
+	}
+
+	addr = strings.ToLower(addr)
+
+	// Extract optional domain part
+	domain := ""
+	if idx := strings.LastIndex(addr, "@"); idx != -1 {
+		domain = strings.ToLower(addr[idx+1:])
+	}
+
+	// Test each address from allowedUsers file
+	for _, allowedAddr := range allowedAddrs {
+		allowedAddr = strings.ToLower(allowedAddr)
+
+		// Three cases for allowedAddr format:
+		if idx := strings.Index(allowedAddr, "@"); idx == -1 {
+			// 1. local address (no @) -- must match exactly
+			if allowedAddr == addr {
+				return true
+			}
+		} else {
+			if idx != 0 {
+				// 2. email address (user@domain.com) -- must match exactly
+				if allowedAddr == addr {
+					return true
+				}
+			} else {
+				// 3. domain (@domain.com) -- must match addr domain
+				allowedDomain := allowedAddr[idx+1:]
+				if allowedDomain == domain {
+					return true
+				}
+			}
+		}
+	}
+
+	return false
+}
+
 func senderChecker(peer smtpd.Peer, addr string) error {
 	if *allowedSender == "" {
 		// disable sender check, allow anyone to send mail
@@ -68,7 +111,7 @@ func senderChecker(peer smtpd.Peer, addr string) error {
 
 	// check sender address from auth file if user is authenticated
 	if *allowedUsers != "" && peer.Username != "" {
-		_, email, err := AuthFetch(peer.Username)
+		user, err := AuthFetch(peer.Username)
 		if err != nil {
 			log.WithField("sender_address", addr).
 				WithField("err", err).
@@ -76,7 +119,9 @@ func senderChecker(peer smtpd.Peer, addr string) error {
 			return observeErr(smtpd.Error{Code: 451, Message: "sender address not allowed"})
 		}
 
-		if strings.ToLower(addr) != strings.ToLower(email) {
+		if !addrAllowed(addr, user.allowedAddresses) {
+			log.Printf("Mail from=<%s> not allowed for authenticated user %s (%v)\n",
+				addr, peer.Username, peer.Addr)
 			log.WithField("sender_address", addr).
 				Warn("sender address not allowed")
 			return observeErr(smtpd.Error{Code: 451, Message: "sender address not allowed"})
@@ -231,7 +276,7 @@ func generateUUID() string {
 	return uniqueID.String()
 }
 
-func main() {
+func getTLSConfig() *tls.Config {
 	go handleMetrics()
 
 	// Cipher suites as defined in stock Go but without 3DES and RC4
@@ -246,23 +291,32 @@ func main() {
 		tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
 		tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
 		tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
-		tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
-		tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
-		tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256,
-		tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,
-		tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
-		tls.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,
 		tls.TLS_RSA_WITH_AES_128_GCM_SHA256, // does not provide PFS
 		tls.TLS_RSA_WITH_AES_256_GCM_SHA384, // does not provide PFS
-		tls.TLS_RSA_WITH_AES_128_CBC_SHA256,
-		tls.TLS_RSA_WITH_AES_128_CBC_SHA,
-		tls.TLS_RSA_WITH_AES_256_CBC_SHA,
 	}
 
+	if *localCert == "" || *localKey == "" {
+		log.Fatal("TLS certificate/key not defined in config")
+	}
+
+	cert, err := tls.LoadX509KeyPair(*localCert, *localKey)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return &tls.Config{
+		PreferServerCipherSuites: true,
+		MinVersion:               tls.VersionTLS12,
+		CipherSuites:             tlsCipherSuites,
+		Certificates:             []tls.Certificate{cert},
+	}
+}
+
+func main() {
 	ConfigLoad()
 
 	if *versionInfo {
-		fmt.Printf("smtprelay/%s\n", VERSION)
+		fmt.Printf("smtprelay/%s (%s)\n", appVersion, buildTime)
 		os.Exit(0)
 	}
 
