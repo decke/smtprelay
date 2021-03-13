@@ -12,7 +12,7 @@ var (
 )
 
 var (
-	logFile           = flag.String("logfile", "/var/log/smtprelay.log", "Path to logfile")
+	logFile           = flag.String("logfile", "", "Path to logfile")
 	logFormat         = flag.String("log_format", "default", "Log output format")
 	logLevel          = flag.String("log_level", "info", "Minimum log level to output")
 	hostName          = flag.String("hostname", "localhost.localdomain", "Server hostname")
