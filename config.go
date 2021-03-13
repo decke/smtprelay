@@ -25,7 +25,7 @@ var (
 	allowedSender     = flag.String("allowed_sender", "", "Regular expression for valid FROM EMail addresses")
 	allowedRecipients = flag.String("allowed_recipients", "", "Regular expression for valid TO EMail addresses")
 	allowedUsers      = flag.String("allowed_users", "", "Path to file with valid users/passwords")
-	remoteHost        = flag.String("remote_host", "smtp.gmail.com:587", "Outgoing SMTP server")
+	remoteHost        = flag.String("remote_host", "", "Outgoing SMTP server")
 	remoteUser        = flag.String("remote_user", "", "Username for authentication on outgoing SMTP server")
 	remotePass        = flag.String("remote_pass", "", "Password for authentication on outgoing SMTP server")
 	remoteAuth        = flag.String("remote_auth", "plain", "Auth method on outgoing SMTP server (plain, login)")
@@ -38,4 +38,8 @@ func ConfigLoad() {
 
 	// Set up logging as soon as possible
 	setupLogger()
+
+	if (*remoteHost == "") {
+		log.Warn("remote_host not set; mail will not be forwarded!")
+	}
 }
