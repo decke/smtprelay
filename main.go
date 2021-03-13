@@ -180,6 +180,12 @@ func mailHandler(peer smtpd.Peer, env smtpd.Envelope) error {
 		"host": *remoteHost,
 		"uuid": generateUUID(),
 	})
+
+	if (*remoteHost == "") {
+		logger.Warning("remote_host not set; discarding mail")
+		return nil
+	}
+
 	logger.Info("delivering mail from peer using smarthost")
 
 	var auth smtp.Auth
