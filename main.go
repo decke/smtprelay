@@ -7,9 +7,11 @@ import (
 	"net/smtp"
 	"net/textproto"
 	"os"
+	"os/signal"
 	"regexp"
 	"strings"
-	"time"
+	"syscall"
+	"sync"
 
 	"github.com/chrj/smtpd"
 	"github.com/google/uuid"
@@ -312,6 +314,9 @@ func main() {
 		}
 	}
 
+	var listeners []net.Listener
+	var waitgrp sync.WaitGroup
+
 	// Create a server for each desired listen address
 	for _, listenAddr := range strings.Split(*listen, " ") {
 		server := &smtpd.Server{
@@ -362,12 +367,42 @@ func main() {
 				"address": listenAddr,
 			}).WithError(err).Fatal("error starting listener")
 		}
-		defer lsnr.Close()
+		listeners = append(listeners, lsnr)
 
-		go server.Serve(lsnr)
+		waitgrp.Add(1)
+		go func() {
+			defer waitgrp.Done()
+			server.Serve(lsnr)
+		}()
 	}
 
-	for true {
-		time.Sleep(time.Minute)
+	handleSignals()
+
+	// Close the listeners out from underneath the smtpd.Server since there's
+	// no way to gracefully stop it: https://github.com/chrj/smtpd/issues/10
+	// The docs confirm that: "Multiple goroutines may invoke methods on a
+	// Listener simultaneously."
+	for _, l := range listeners {
+		err := l.Close()
+		if err != nil {
+			log.WithField("address", l.Addr()).
+				WithError(err).
+				Warn("could not close listener")
+		}
 	}
+
+	// Wait for server goroutines to complete
+	log.Debug("waiting for goroutines to complete")
+	waitgrp.Wait()
+	log.Debug("done")
+}
+
+func handleSignals() {
+	// Wait for SIGINT, SIGQUIT, or SIGTERM
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGTERM)
+	sig := <-sigs
+
+	log.WithField("signal", sig).
+		Info("shutting down in resposne to received signal")
 }
