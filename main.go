@@ -6,8 +6,9 @@ import (
 	"net"
 	"net/textproto"
 	"os"
+	"os/signal"
 	"strings"
-	"time"
+	"syscall"
 
 	"github.com/chrj/smtpd"
 	"github.com/google/uuid"
@@ -284,6 +285,8 @@ func main() {
 		}
 	}
 
+	var servers []*smtpd.Server
+
 	// Create a server for each desired listen address
 	for _, listenAddr := range strings.Split(*listen, " ") {
 		server := &smtpd.Server{
@@ -334,12 +337,46 @@ func main() {
 				"address": listenAddr,
 			}).WithError(err).Fatal("error starting listener")
 		}
-		defer lsnr.Close()
+		servers = append(servers, server)
 
-		go server.Serve(lsnr)
+		go func() {
+			server.Serve(lsnr)
+		}()
 	}
 
-	for true {
-		time.Sleep(time.Minute)
+	handleSignals()
+
+	// First close the listeners
+	for _, server := range servers {
+		logger := log.WithField("address", server.Address())
+		logger.Debug("Shutting down server")
+		err := server.Shutdown(false)
+		if err != nil {
+			logger.WithError(err).
+				Warning("Shutdown failed")
+		}
 	}
+
+	// Then wait for the clients to exit
+	for _, server := range servers {
+		logger := log.WithField("address", server.Address())
+		logger.Debug("Waiting for server")
+		err := server.Wait()
+		if err != nil {
+			logger.WithError(err).
+				Warning("Wait failed")
+		}
+	}
+
+	log.Debug("done")
+}
+
+func handleSignals() {
+	// Wait for SIGINT, SIGQUIT, or SIGTERM
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGTERM)
+	sig := <-sigs
+
+	log.WithField("signal", sig).
+		Info("shutting down in response to received signal")
 }
