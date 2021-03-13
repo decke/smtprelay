@@ -20,6 +20,10 @@ func connectionChecker(peer smtpd.Peer) error {
 	// This can't panic because we only have TCP listeners
 	peerIP := peer.Addr.(*net.TCPAddr).IP
 
+	if len(allowedNets) == 0 {
+		// Special case: empty string means allow everything
+		return nil
+	}
 
 	for _, allowedNet := range allowedNets {
 		if allowedNet.Contains(peerIP) {
