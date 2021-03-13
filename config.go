@@ -5,6 +5,7 @@ import (
 	"net"
 
 	"github.com/vharitonsky/iniflags"
+	"github.com/sirupsen/logrus"
 )
 
 var (
@@ -22,7 +23,7 @@ var (
 	localCert         = flag.String("local_cert", "", "SSL certificate for STARTTLS/TLS")
 	localKey          = flag.String("local_key", "", "SSL private key for STARTTLS/TLS")
 	localForceTLS     = flag.Bool("local_forcetls", false, "Force STARTTLS (needs local_cert and local_key)")
-	allowedNetsStr    = flag.String("allowed_nets", "127.0.0.1/8 ::1/128", "Networks allowed to send mails")
+	allowedNetsStr    = flag.String("allowed_nets", "127.0.0.0/8 ::1/128", "Networks allowed to send mails")
 	allowedNets       = []*net.IPNet{}
 	allowedSender     = flag.String("allowed_sender", "", "Regular expression for valid FROM EMail addresses")
 	allowedRecipients = flag.String("allowed_recipients", "", "Regular expression for valid TO EMail addresses")
@@ -38,11 +39,20 @@ var (
 
 func setupAllowedNetworks() {
 	for _, netstr := range splitstr(*allowedNetsStr, ' ') {
-		_, allowedNet, err := net.ParseCIDR(netstr)
+		baseIP, allowedNet, err := net.ParseCIDR(netstr)
 		if err != nil {
 			log.WithField("netstr", netstr).
 				WithError(err).
 				Fatal("Invalid CIDR notation in allowed_nets")
+		}
+
+		// Reject any network specification where any host bits are set,
+		// meaning the address refers to a host and not a network.
+		if !allowedNet.IP.Equal(baseIP) {
+			log.WithFields(logrus.Fields{
+				"given_net": netstr,
+				"proper_net": allowedNet,
+			}).Fatal("Invalid network in allowed_nets (host bits set)")
 		}
 
 		allowedNets = append(allowedNets, allowedNet)
