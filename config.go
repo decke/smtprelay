@@ -12,7 +12,9 @@ var (
 )
 
 var (
-	logFile           = flag.String("logfile", "/var/log/smtprelay.log", "Path to logfile")
+	logFile           = flag.String("logfile", "", "Path to logfile")
+	logFormat         = flag.String("log_format", "default", "Log output format")
+	logLevel          = flag.String("log_level", "info", "Minimum log level to output")
 	hostName          = flag.String("hostname", "localhost.localdomain", "Server hostname")
 	welcomeMsg        = flag.String("welcome_msg", "", "Welcome message for SMTP session")
 	listen            = flag.String("listen", "127.0.0.1:25 [::1]:25", "Address and port to listen for incoming SMTP")
@@ -33,4 +35,7 @@ var (
 
 func ConfigLoad() {
 	iniflags.Parse()
+
+	// Set up logging as soon as possible
+	setupLogger()
 }
