@@ -17,20 +17,15 @@ import (
 )
 
 func connectionChecker(peer smtpd.Peer) error {
-	var peerIP net.IP
-	if addr, ok := peer.Addr.(*net.TCPAddr); ok {
-		peerIP = net.ParseIP(addr.IP.String())
-	} else {
-		log.WithField("ip", addr.IP).
-			Warn("failed to parse IP")
-		return smtpd.Error{Code: 421, Message: "Denied"}
+	// This can't panic because we only have TCP listeners
+	peerIP := peer.Addr.(*net.TCPAddr).IP
+
+	if len(allowedNets) == 0 {
+		// Special case: empty string means allow everything
+		return nil
 	}
 
-	nets := strings.Split(*allowedNets, " ")
-
-	for i := range nets {
-		_, allowedNet, _ := net.ParseCIDR(nets[i])
-
+	for _, allowedNet := range allowedNets {
 		if allowedNet.Contains(peerIP) {
 			return nil
 		}
