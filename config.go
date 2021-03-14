@@ -4,6 +4,7 @@ import (
 	"flag"
 	"net"
 	"regexp"
+	"net/smtp"
 
 	"github.com/vharitonsky/iniflags"
 	"github.com/sirupsen/logrus"
@@ -34,7 +35,8 @@ var (
 	remoteHost        = flag.String("remote_host", "", "Outgoing SMTP server")
 	remoteUser        = flag.String("remote_user", "", "Username for authentication on outgoing SMTP server")
 	remotePass        = flag.String("remote_pass", "", "Password for authentication on outgoing SMTP server")
-	remoteAuth        = flag.String("remote_auth", "plain", "Auth method on outgoing SMTP server (plain, login)")
+	remoteAuthStr     = flag.String("remote_auth", "none", "Auth method on outgoing SMTP server (none, plain, login)")
+	remoteAuth        smtp.Auth
 	remoteSender      = flag.String("remote_sender", "", "Sender e-mail address on outgoing SMTP server")
 	versionInfo       = flag.Bool("version", false, "Show version information")
 )
@@ -84,6 +86,51 @@ func setupAllowedPatterns() {
 	}
 }
 
+
+func setupRemoteAuth() {
+	logger := log.WithField("remote_auth", *remoteAuthStr)
+
+	// Remote auth disabled?
+	switch *remoteAuthStr {
+	case "", "none":
+		if *remoteUser != "" {
+			logger.Fatal("remote_user given but not used")
+		}
+		if *remotePass != "" {
+			logger.Fatal("remote_pass given but not used")
+		}
+
+		// No auth; use empty default
+		return
+	}
+
+	// We need a username, password, and remote host
+	if *remoteUser == "" {
+		logger.Fatal("remote_user required but empty")
+	}
+	if *remotePass == "" {
+		logger.Fatal("remote_pass required but empty")
+	}
+	if *remoteHost == "" {
+		logger.Fatal("remote_auth without remote_host is pointless")
+	}
+
+	host, _, err := net.SplitHostPort(*remoteHost)
+	if err != nil {
+		logger.WithField("remote_host", *remoteHost).
+			   Fatal("Invalid remote_host")
+	}
+
+	switch *remoteAuthStr {
+	case "plain":
+		remoteAuth = smtp.PlainAuth("", *remoteUser, *remotePass, host)
+	case "login":
+		remoteAuth = LoginAuth(*remoteUser, *remotePass)
+	default:
+		logger.Fatal("Invalid remote_auth type")
+	}
+}
+
 func ConfigLoad() {
 	iniflags.Parse()
 
@@ -96,4 +143,5 @@ func ConfigLoad() {
 
 	setupAllowedNetworks()
 	setupAllowedPatterns()
+	setupRemoteAuth()
 }
