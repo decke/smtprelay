@@ -7,7 +7,6 @@ import (
 	"net/smtp"
 	"net/textproto"
 	"os"
-	"regexp"
 	"strings"
 	"time"
 
@@ -121,19 +120,13 @@ func senderChecker(peer smtpd.Peer, addr string) error {
 }
 
 func recipientChecker(peer smtpd.Peer, addr string) error {
-	if *allowedRecipients == "" {
+	if allowedRecipients == nil {
+		// Any recipient is permitted
 		return nil
 	}
 
-	re, err := regexp.Compile(*allowedRecipients)
-	if err != nil {
-		log.WithFields(logrus.Fields{
-			"allowed_recipients": *allowedRecipients,
-		}).WithError(err).Warn("allowed_recipients pattern invalid")
-		return smtpd.Error{Code: 451, Message: "Bad recipient address"}
-	}
-
-	if re.MatchString(addr) {
+	if allowedRecipients.MatchString(addr) {
+		// Permitted by regex
 		return nil
 	}
 

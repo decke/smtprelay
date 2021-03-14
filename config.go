@@ -28,7 +28,8 @@ var (
 	allowedNets       = []*net.IPNet{}
 	allowedSenderStr  = flag.String("allowed_sender", "", "Regular expression for valid FROM EMail addresses")
 	allowedSender     *regexp.Regexp
-	allowedRecipients = flag.String("allowed_recipients", "", "Regular expression for valid TO EMail addresses")
+	allowedRecipStr   = flag.String("allowed_recipients", "", "Regular expression for valid TO EMail addresses")
+	allowedRecipients *regexp.Regexp
 	allowedUsers      = flag.String("allowed_users", "", "Path to file with valid users/passwords")
 	remoteHost        = flag.String("remote_host", "", "Outgoing SMTP server")
 	remoteUser        = flag.String("remote_user", "", "Username for authentication on outgoing SMTP server")
@@ -61,17 +62,25 @@ func setupAllowedNetworks() {
 	}
 }
 
-func setupAllowedSender() {
-	if (*allowedSenderStr == "") {
-		return
+func setupAllowedPatterns() {
+	var err error
+
+	if (*allowedSenderStr != "") {
+		allowedSender, err = regexp.Compile(*allowedSenderStr)
+		if err != nil {
+			log.WithField("allowed_sender", *allowedSenderStr).
+				WithError(err).
+				Fatal("allowed_sender pattern invalid")
+		}
 	}
 
-	var err error
-	allowedSender, err = regexp.Compile(*allowedSenderStr)
-	if err != nil {
-		log.WithField("allowed_sender", *allowedSenderStr).
-			WithError(err).
-			Fatal("allowed_sender pattern invalid")
+	if (*allowedRecipStr != "") {
+		allowedRecipients, err = regexp.Compile(*allowedRecipStr)
+		if err != nil {
+			log.WithField("allowed_recipients", *allowedRecipStr).
+				WithError(err).
+				Fatal("allowed_recipients pattern invalid")
+		}
 	}
 }
 
@@ -86,5 +95,5 @@ func ConfigLoad() {
 	}
 
 	setupAllowedNetworks()
-	setupAllowedSender()
+	setupAllowedPatterns()
 }
