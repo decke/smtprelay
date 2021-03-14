@@ -103,26 +103,20 @@ func senderChecker(peer smtpd.Peer, addr string) error {
 		}
 	}
 
-	if *allowedSender == "" {
+	if allowedSender == nil {
+		// Any sender is permitted
 		return nil
 	}
 
-	re, err := regexp.Compile(*allowedSender)
-	if err != nil {
-		log.WithFields(logrus.Fields{
-			"allowed_sender": *allowedSender,
-		}).WithError(err).Warn("allowed_sender pattern invalid")
-		return smtpd.Error{Code: 451, Message: "Bad sender address"}
-	}
-
-	if re.MatchString(addr) {
+	if allowedSender.MatchString(addr) {
+		// Permitted by regex
 		return nil
 	}
 
 	log.WithFields(logrus.Fields{
 		"sender_address": addr,
 		"peer": peer.Addr,
-	}).Warn("Sender address not allowed by allowed_sender pattern")
+	}).Warn("sender address not allowed by allowed_sender pattern")
 	return smtpd.Error{Code: 451, Message: "Bad sender address"}
 }
 

@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"net"
+	"regexp"
 
 	"github.com/vharitonsky/iniflags"
 	"github.com/sirupsen/logrus"
@@ -25,7 +26,8 @@ var (
 	localForceTLS     = flag.Bool("local_forcetls", false, "Force STARTTLS (needs local_cert and local_key)")
 	allowedNetsStr    = flag.String("allowed_nets", "127.0.0.0/8 ::1/128", "Networks allowed to send mails")
 	allowedNets       = []*net.IPNet{}
-	allowedSender     = flag.String("allowed_sender", "", "Regular expression for valid FROM EMail addresses")
+	allowedSenderStr  = flag.String("allowed_sender", "", "Regular expression for valid FROM EMail addresses")
+	allowedSender     *regexp.Regexp
 	allowedRecipients = flag.String("allowed_recipients", "", "Regular expression for valid TO EMail addresses")
 	allowedUsers      = flag.String("allowed_users", "", "Path to file with valid users/passwords")
 	remoteHost        = flag.String("remote_host", "", "Outgoing SMTP server")
@@ -59,6 +61,20 @@ func setupAllowedNetworks() {
 	}
 }
 
+func setupAllowedSender() {
+	if (*allowedSenderStr == "") {
+		return
+	}
+
+	var err error
+	allowedSender, err = regexp.Compile(*allowedSenderStr)
+	if err != nil {
+		log.WithField("allowed_sender", *allowedSenderStr).
+			WithError(err).
+			Fatal("allowed_sender pattern invalid")
+	}
+}
+
 func ConfigLoad() {
 	iniflags.Parse()
 
@@ -70,4 +86,5 @@ func ConfigLoad() {
 	}
 
 	setupAllowedNetworks()
+	setupAllowedSender()
 }
