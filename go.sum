@@ -1,5 +1,5 @@
-github.com/chrj/smtpd v0.2.0 h1:QGbE4UQz7sKjvXpRgNLuiBOjcWTzBKu/dj0hyDLpD14=
-github.com/chrj/smtpd v0.2.0/go.mod h1:1hmG9KbrE10JG1SmvG79Krh4F6713oUrw2+gRp1oSYk=
+github.com/chrj/smtpd v0.3.0 h1:cw1LSHDOz7N3XbkcZSF/bue9dh7ATKk5ZksfBztV6b0=
+github.com/chrj/smtpd v0.3.0/go.mod h1:1hmG9KbrE10JG1SmvG79Krh4F6713oUrw2+gRp1oSYk=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/eaigner/dkim v0.0.0-20150301120808-6fe4a7ee9cfb/go.mod h1:FSCIHbrqk7D01Mj8y/jW+NS1uoCerr+ad+IckTHTFf4=
