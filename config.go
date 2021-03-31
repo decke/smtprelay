@@ -91,8 +91,7 @@ func setupRemoteAuth() {
 	logger := log.WithField("remote_auth", *remoteAuthStr)
 
 	// Remote auth disabled?
-	switch *remoteAuthStr {
-	case "", "none":
+	if *remoteAuthStr == "" || *remoteAuthStr == "none" {
 		if *remoteUser != "" {
 			logger.Fatal("remote_user given but not used")
 		}
