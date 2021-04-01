@@ -3,8 +3,9 @@ package main
 import (
 	"flag"
 	"net"
-	"regexp"
 	"net/smtp"
+	"regexp"
+	"strings"
 
 	"github.com/vharitonsky/iniflags"
 	"github.com/sirupsen/logrus"
@@ -21,7 +22,8 @@ var (
 	logLevel          = flag.String("log_level", "info", "Minimum log level to output")
 	hostName          = flag.String("hostname", "localhost.localdomain", "Server hostname")
 	welcomeMsg        = flag.String("welcome_msg", "", "Welcome message for SMTP session")
-	listen            = flag.String("listen", "127.0.0.1:25 [::1]:25", "Address and port to listen for incoming SMTP")
+	listenStr         = flag.String("listen", "127.0.0.1:25 [::1]:25", "Address and port to listen for incoming SMTP")
+	listenAddrs       = []protoAddr{}
 	localCert         = flag.String("local_cert", "", "SSL certificate for STARTTLS/TLS")
 	localKey          = flag.String("local_key", "", "SSL private key for STARTTLS/TLS")
 	localForceTLS     = flag.Bool("local_forcetls", false, "Force STARTTLS (needs local_cert and local_key)")
@@ -130,6 +132,31 @@ func setupRemoteAuth() {
 	}
 }
 
+type protoAddr struct {
+	protocol string
+	address  string
+}
+
+func splitProto(s string) protoAddr {
+	idx := strings.Index(s, "://")
+	if idx == -1 {
+		return protoAddr {
+			address:  s,
+		}
+	}
+	return protoAddr {
+		protocol: s[0 : idx],
+		address:  s[idx+3 : len(s)],
+	}
+}
+
+func setupListeners() {
+	for _, listenAddr := range strings.Split(*listenStr, " ") {
+		pa := splitProto(listenAddr)
+		listenAddrs = append(listenAddrs, pa)
+	}
+}
+
 func ConfigLoad() {
 	iniflags.Parse()
 
@@ -143,4 +170,5 @@ func ConfigLoad() {
 	setupAllowedNetworks()
 	setupAllowedPatterns()
 	setupRemoteAuth()
+	setupListeners()
 }

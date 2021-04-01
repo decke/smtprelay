@@ -288,7 +288,9 @@ func main() {
 	var servers []*smtpd.Server
 
 	// Create a server for each desired listen address
-	for _, listenAddr := range strings.Split(*listen, " ") {
+	for _, listen := range listenAddrs {
+		logger := log.WithField("address", listen.address)
+
 		server := &smtpd.Server{
 			Hostname:          *hostName,
 			WelcomeMessage:    *welcomeMsg,
@@ -305,37 +307,31 @@ func main() {
 		var lsnr net.Listener
 		var err error
 
-		if strings.Index(listenAddr, "://") == -1 {
-			log.WithField("address", listenAddr).
-				Info("listening on address")
+		switch listen.protocol {
+		case "":
+			logger.Info("listening on address")
+			lsnr, err = net.Listen("tcp", listen.address)
 
-			lsnr, err = net.Listen("tcp", listenAddr)
-		} else if strings.HasPrefix(listenAddr, "starttls://") {
-			listenAddr = strings.TrimPrefix(listenAddr, "starttls://")
-
+		case "starttls":
 			server.TLSConfig = getTLSConfig()
 			server.ForceTLS = *localForceTLS
 
-			log.WithField("address", listenAddr).
-				Info("listening on address (STARTTLS)")
-			lsnr, err = net.Listen("tcp", listenAddr)
-		} else if strings.HasPrefix(listenAddr, "tls://") {
-			listenAddr = strings.TrimPrefix(listenAddr, "tls://")
+			logger.Info("listening on address (STARTTLS)")
+			lsnr, err = net.Listen("tcp", listen.address)
 
+		case "tls":
 			server.TLSConfig = getTLSConfig()
 
-			log.WithField("address", listenAddr).
-				Info("listening on address (TLS)")
-			lsnr, err = tls.Listen("tcp", listenAddr, server.TLSConfig)
-		} else {
-			log.WithField("address", listenAddr).
+			logger.Info("listening on address (TLS)")
+			lsnr, err = tls.Listen("tcp", listen.address, server.TLSConfig)
+
+		default:
+			logger.WithField("protocol", listen.protocol).
 				Fatal("unknown protocol in listen address")
 		}
 
 		if err != nil {
-			log.WithFields(logrus.Fields{
-				"address": listenAddr,
-			}).WithError(err).Fatal("error starting listener")
+			logger.WithError(err).Fatal("error starting listener")
 		}
 		servers = append(servers, server)
 
