@@ -43,6 +43,10 @@ var (
 	versionInfo       = flag.Bool("version", false, "Show version information")
 )
 
+func localAuthRequired() bool {
+	return *allowedUsers != ""
+}
+
 
 func setupAllowedNetworks() {
 	for _, netstr := range splitstr(*allowedNetsStr, ' ') {

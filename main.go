@@ -81,7 +81,7 @@ func addrAllowed(addr string, allowedAddrs []string) bool {
 
 func senderChecker(peer smtpd.Peer, addr string) error {
 	// check sender address from auth file if user is authenticated
-	if *allowedUsers != "" && peer.Username != "" {
+	if localAuthRequired() && peer.Username != "" {
 		user, err := AuthFetch(peer.Username)
 		if err != nil {
 			// Shouldn't happen: authChecker already validated username+password
@@ -276,7 +276,7 @@ func main() {
 		Debug("starting smtprelay")
 
 	// Load allowed users file
-	if *allowedUsers != "" {
+	if localAuthRequired() {
 		err := AuthLoadFile(*allowedUsers)
 		if err != nil {
 			log.WithField("file", *allowedUsers).
@@ -300,7 +300,7 @@ func main() {
 			Handler:           mailHandler,
 		}
 
-		if *allowedUsers != "" {
+		if localAuthRequired() {
 			server.Authenticator = authChecker
 		}
 
