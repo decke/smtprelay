@@ -4,10 +4,8 @@ import (
 	"crypto/tls"
 	"fmt"
 	"net"
-	"net/smtp"
 	"net/textproto"
 	"os"
-	"regexp"
 	"strings"
 	"time"
 
@@ -103,43 +101,31 @@ func senderChecker(peer smtpd.Peer, addr string) error {
 		}
 	}
 
-	if *allowedSender == "" {
+	if allowedSender == nil {
+		// Any sender is permitted
 		return nil
 	}
 
-	re, err := regexp.Compile(*allowedSender)
-	if err != nil {
-		log.WithFields(logrus.Fields{
-			"allowed_sender": *allowedSender,
-		}).WithError(err).Warn("allowed_sender pattern invalid")
-		return smtpd.Error{Code: 451, Message: "Bad sender address"}
-	}
-
-	if re.MatchString(addr) {
+	if allowedSender.MatchString(addr) {
+		// Permitted by regex
 		return nil
 	}
 
 	log.WithFields(logrus.Fields{
 		"sender_address": addr,
 		"peer": peer.Addr,
-	}).Warn("Sender address not allowed by allowed_sender pattern")
+	}).Warn("sender address not allowed by allowed_sender pattern")
 	return smtpd.Error{Code: 451, Message: "Bad sender address"}
 }
 
 func recipientChecker(peer smtpd.Peer, addr string) error {
-	if *allowedRecipients == "" {
+	if allowedRecipients == nil {
+		// Any recipient is permitted
 		return nil
 	}
 
-	re, err := regexp.Compile(*allowedRecipients)
-	if err != nil {
-		log.WithFields(logrus.Fields{
-			"allowed_recipients": *allowedRecipients,
-		}).WithError(err).Warn("allowed_recipients pattern invalid")
-		return smtpd.Error{Code: 451, Message: "Bad recipient address"}
-	}
-
-	if re.MatchString(addr) {
+	if allowedRecipients.MatchString(addr) {
+		// Permitted by regex
 		return nil
 	}
 
@@ -183,20 +169,6 @@ func mailHandler(peer smtpd.Peer, env smtpd.Envelope) error {
 
 	logger.Info("delivering mail from peer using smarthost")
 
-	var auth smtp.Auth
-	host, _, _ := net.SplitHostPort(*remoteHost)
-
-	if *remoteUser != "" && *remotePass != "" {
-		switch *remoteAuth {
-		case "plain":
-			auth = smtp.PlainAuth("", *remoteUser, *remotePass, host)
-		case "login":
-			auth = LoginAuth(*remoteUser, *remotePass)
-		default:
-			return smtpd.Error{Code: 530, Message: "Authentication method not supported"}
-		}
-	}
-
 	env.AddReceivedLine(peer)
 
 	var sender string
@@ -209,7 +181,7 @@ func mailHandler(peer smtpd.Peer, env smtpd.Envelope) error {
 
 	err := SendMail(
 		*remoteHost,
-		auth,
+		remoteAuth,
 		sender,
 		env.Recipients,
 		env.Data,

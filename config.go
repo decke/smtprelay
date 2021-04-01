@@ -3,6 +3,8 @@ package main
 import (
 	"flag"
 	"net"
+	"regexp"
+	"net/smtp"
 
 	"github.com/vharitonsky/iniflags"
 	"github.com/sirupsen/logrus"
@@ -25,13 +27,16 @@ var (
 	localForceTLS     = flag.Bool("local_forcetls", false, "Force STARTTLS (needs local_cert and local_key)")
 	allowedNetsStr    = flag.String("allowed_nets", "127.0.0.0/8 ::1/128", "Networks allowed to send mails")
 	allowedNets       = []*net.IPNet{}
-	allowedSender     = flag.String("allowed_sender", "", "Regular expression for valid FROM EMail addresses")
-	allowedRecipients = flag.String("allowed_recipients", "", "Regular expression for valid TO EMail addresses")
+	allowedSenderStr  = flag.String("allowed_sender", "", "Regular expression for valid FROM EMail addresses")
+	allowedSender     *regexp.Regexp
+	allowedRecipStr   = flag.String("allowed_recipients", "", "Regular expression for valid TO EMail addresses")
+	allowedRecipients *regexp.Regexp
 	allowedUsers      = flag.String("allowed_users", "", "Path to file with valid users/passwords")
 	remoteHost        = flag.String("remote_host", "", "Outgoing SMTP server")
 	remoteUser        = flag.String("remote_user", "", "Username for authentication on outgoing SMTP server")
 	remotePass        = flag.String("remote_pass", "", "Password for authentication on outgoing SMTP server")
-	remoteAuth        = flag.String("remote_auth", "plain", "Auth method on outgoing SMTP server (plain, login)")
+	remoteAuthStr     = flag.String("remote_auth", "none", "Auth method on outgoing SMTP server (none, plain, login)")
+	remoteAuth        smtp.Auth
 	remoteSender      = flag.String("remote_sender", "", "Sender e-mail address on outgoing SMTP server")
 	versionInfo       = flag.Bool("version", false, "Show version information")
 )
@@ -59,6 +64,72 @@ func setupAllowedNetworks() {
 	}
 }
 
+func setupAllowedPatterns() {
+	var err error
+
+	if (*allowedSenderStr != "") {
+		allowedSender, err = regexp.Compile(*allowedSenderStr)
+		if err != nil {
+			log.WithField("allowed_sender", *allowedSenderStr).
+				WithError(err).
+				Fatal("allowed_sender pattern invalid")
+		}
+	}
+
+	if (*allowedRecipStr != "") {
+		allowedRecipients, err = regexp.Compile(*allowedRecipStr)
+		if err != nil {
+			log.WithField("allowed_recipients", *allowedRecipStr).
+				WithError(err).
+				Fatal("allowed_recipients pattern invalid")
+		}
+	}
+}
+
+
+func setupRemoteAuth() {
+	logger := log.WithField("remote_auth", *remoteAuthStr)
+
+	// Remote auth disabled?
+	if *remoteAuthStr == "" || *remoteAuthStr == "none" {
+		if *remoteUser != "" {
+			logger.Fatal("remote_user given but not used")
+		}
+		if *remotePass != "" {
+			logger.Fatal("remote_pass given but not used")
+		}
+
+		// No auth; use empty default
+		return
+	}
+
+	// We need a username, password, and remote host
+	if *remoteUser == "" {
+		logger.Fatal("remote_user required but empty")
+	}
+	if *remotePass == "" {
+		logger.Fatal("remote_pass required but empty")
+	}
+	if *remoteHost == "" {
+		logger.Fatal("remote_auth without remote_host is pointless")
+	}
+
+	host, _, err := net.SplitHostPort(*remoteHost)
+	if err != nil {
+		logger.WithField("remote_host", *remoteHost).
+			   Fatal("Invalid remote_host")
+	}
+
+	switch *remoteAuthStr {
+	case "plain":
+		remoteAuth = smtp.PlainAuth("", *remoteUser, *remotePass, host)
+	case "login":
+		remoteAuth = LoginAuth(*remoteUser, *remotePass)
+	default:
+		logger.Fatal("Invalid remote_auth type")
+	}
+}
+
 func ConfigLoad() {
 	iniflags.Parse()
 
@@ -70,4 +141,6 @@ func ConfigLoad() {
 	}
 
 	setupAllowedNetworks()
+	setupAllowedPatterns()
+	setupRemoteAuth()
 }
