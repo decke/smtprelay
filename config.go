@@ -7,8 +7,8 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/vharitonsky/iniflags"
 	"github.com/sirupsen/logrus"
+	"github.com/vharitonsky/iniflags"
 )
 
 var (
@@ -47,7 +47,6 @@ func localAuthRequired() bool {
 	return *allowedUsers != ""
 }
 
-
 func setupAllowedNetworks() {
 	for _, netstr := range splitstr(*allowedNetsStr, ' ') {
 		baseIP, allowedNet, err := net.ParseCIDR(netstr)
@@ -61,7 +60,7 @@ func setupAllowedNetworks() {
 		// meaning the address refers to a host and not a network.
 		if !allowedNet.IP.Equal(baseIP) {
 			log.WithFields(logrus.Fields{
-				"given_net": netstr,
+				"given_net":  netstr,
 				"proper_net": allowedNet,
 			}).Fatal("Invalid network in allowed_nets (host bits set)")
 		}
@@ -73,7 +72,7 @@ func setupAllowedNetworks() {
 func setupAllowedPatterns() {
 	var err error
 
-	if (*allowedSenderStr != "") {
+	if *allowedSenderStr != "" {
 		allowedSender, err = regexp.Compile(*allowedSenderStr)
 		if err != nil {
 			log.WithField("allowed_sender", *allowedSenderStr).
@@ -82,7 +81,7 @@ func setupAllowedPatterns() {
 		}
 	}
 
-	if (*allowedRecipStr != "") {
+	if *allowedRecipStr != "" {
 		allowedRecipients, err = regexp.Compile(*allowedRecipStr)
 		if err != nil {
 			log.WithField("allowed_recipients", *allowedRecipStr).
@@ -91,7 +90,6 @@ func setupAllowedPatterns() {
 		}
 	}
 }
-
 
 func setupRemoteAuth() {
 	logger := log.WithField("remote_auth", *remoteAuthStr)
@@ -123,7 +121,7 @@ func setupRemoteAuth() {
 	host, _, err := net.SplitHostPort(*remoteHost)
 	if err != nil {
 		logger.WithField("remote_host", *remoteHost).
-			   Fatal("Invalid remote_host")
+			Fatal("Invalid remote_host")
 	}
 
 	switch *remoteAuthStr {
@@ -144,13 +142,13 @@ type protoAddr struct {
 func splitProto(s string) protoAddr {
 	idx := strings.Index(s, "://")
 	if idx == -1 {
-		return protoAddr {
-			address:  s,
+		return protoAddr{
+			address: s,
 		}
 	}
-	return protoAddr {
-		protocol: s[0 : idx],
-		address:  s[idx+3 : len(s)],
+	return protoAddr{
+		protocol: s[0:idx],
+		address:  s[idx+3:],
 	}
 }
 
@@ -161,9 +159,8 @@ func setupListeners() {
 		if localAuthRequired() && pa.protocol == "" {
 			log.WithField("address", pa.address).
 				Fatal("Local authentication (via allowed_users file) " +
-				      "not allowed with non-TLS listener")
+					"not allowed with non-TLS listener")
 		}
-
 
 		listenAddrs = append(listenAddrs, pa)
 	}
@@ -175,7 +172,7 @@ func ConfigLoad() {
 	// Set up logging as soon as possible
 	setupLogger()
 
-	if (*remoteHost == "") {
+	if *remoteHost == "" {
 		log.Warn("remote_host not set; mail will not be forwarded!")
 	}
 

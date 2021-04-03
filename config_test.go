@@ -6,24 +6,24 @@ import (
 
 func TestSplitProto(t *testing.T) {
 	var tests = []struct {
-		input      string
-		proto      string
-		addr       string
+		input string
+		proto string
+		addr  string
 	}{
 		{
-			input:      "localhost",
-			proto:      "",
-			addr:       "localhost",
+			input: "localhost",
+			proto: "",
+			addr:  "localhost",
 		},
 		{
-			input:      "tls://my.local.domain",
-			proto:      "tls",
-			addr:       "my.local.domain",
+			input: "tls://my.local.domain",
+			proto: "tls",
+			addr:  "my.local.domain",
 		},
 		{
-			input:      "starttls://my.local.domain",
-			proto:      "starttls",
-			addr:       "my.local.domain",
+			input: "starttls://my.local.domain",
+			proto: "starttls",
+			addr:  "my.local.domain",
 		},
 	}
 

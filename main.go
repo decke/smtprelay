@@ -86,7 +86,7 @@ func senderChecker(peer smtpd.Peer, addr string) error {
 		if err != nil {
 			// Shouldn't happen: authChecker already validated username+password
 			log.WithFields(logrus.Fields{
-				"peer": peer.Addr,
+				"peer":     peer.Addr,
 				"username": peer.Username,
 			}).WithError(err).Warn("could not fetch auth user")
 			return smtpd.Error{Code: 451, Message: "Bad sender address"}
@@ -94,8 +94,8 @@ func senderChecker(peer smtpd.Peer, addr string) error {
 
 		if !addrAllowed(addr, user.allowedAddresses) {
 			log.WithFields(logrus.Fields{
-				"peer": peer.Addr,
-				"username": peer.Username,
+				"peer":           peer.Addr,
+				"username":       peer.Username,
 				"sender_address": addr,
 			}).Warn("sender address not allowed for authenticated user")
 			return smtpd.Error{Code: 451, Message: "Bad sender address"}
@@ -114,7 +114,7 @@ func senderChecker(peer smtpd.Peer, addr string) error {
 
 	log.WithFields(logrus.Fields{
 		"sender_address": addr,
-		"peer": peer.Addr,
+		"peer":           peer.Addr,
 	}).Warn("sender address not allowed by allowed_sender pattern")
 	return smtpd.Error{Code: 451, Message: "Bad sender address"}
 }
@@ -131,7 +131,7 @@ func recipientChecker(peer smtpd.Peer, addr string) error {
 	}
 
 	log.WithFields(logrus.Fields{
-		"peer": peer.Addr,
+		"peer":              peer.Addr,
 		"recipient_address": addr,
 	}).Warn("recipient address not allowed by allowed_recipients pattern")
 	return smtpd.Error{Code: 451, Message: "Bad recipient address"}
@@ -141,7 +141,7 @@ func authChecker(peer smtpd.Peer, username string, password string) error {
 	err := AuthCheckPassword(username, password)
 	if err != nil {
 		log.WithFields(logrus.Fields{
-			"peer": peer.Addr,
+			"peer":     peer.Addr,
 			"username": username,
 		}).WithError(err).Warn("auth error")
 		return smtpd.Error{Code: 535, Message: "Authentication credentials invalid"}
@@ -157,13 +157,13 @@ func mailHandler(peer smtpd.Peer, env smtpd.Envelope) error {
 
 	logger := log.WithFields(logrus.Fields{
 		"from": env.Sender,
-		"to": env.Recipients,
+		"to":   env.Recipients,
 		"peer": peerIP,
 		"host": *remoteHost,
 		"uuid": generateUUID(),
 	})
 
-	if (*remoteHost == "") {
+	if *remoteHost == "" {
 		logger.Warning("remote_host not set; discarding mail")
 		return nil
 	}
@@ -197,7 +197,7 @@ func mailHandler(peer smtpd.Peer, env smtpd.Envelope) error {
 
 			logger.WithFields(logrus.Fields{
 				"err_code": err.Code,
-				"err_msg": err.Msg,
+				"err_msg":  err.Msg,
 			}).Error("delivery failed")
 		default:
 			smtpError = smtpd.Error{Code: 554, Message: "Forwarding failed"}
@@ -246,7 +246,7 @@ func getTLSConfig() *tls.Config {
 	if *localCert == "" || *localKey == "" {
 		log.WithFields(logrus.Fields{
 			"cert_file": *localCert,
-			"key_file": *localKey,
+			"key_file":  *localKey,
 		}).Fatal("TLS certificate/key file not defined in config")
 	}
 

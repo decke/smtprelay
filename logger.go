@@ -16,7 +16,7 @@ func setupLogger() {
 	log = logrus.New()
 
 	// Handle logfile
-	if (*logFile == "") {
+	if *logFile == "" {
 		log.SetOutput(os.Stderr)
 	} else {
 		writer, err := os.OpenFile(*logFile, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0600)
