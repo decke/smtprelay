@@ -302,10 +302,10 @@ func (c *Client) Data() (io.WriteCloser, error) {
 var testHookStartTLS func(*tls.Config) // nil, except for tests
 
 // SendMail connects to the server at addr with TLS when port 465 or
-// smtps is specified or unencrypted otherwise and switches to TLS if
-// possible, authenticates with the optional mechanism a if possible,
-// and then sends an email from address from, to addresses to, with
-// message msg.
+// smtps is specified or forceTLS is true or unencrypted otherwise
+// and switches to TLS if possible, authenticates with the optional
+// mechanism a if possible, and then sends an email from address
+// from, to addresses to, with message msg.
 // The addr must include a port, as in "mail.example.com:smtp".
 //
 // The addresses in the to parameter are the SMTP RCPT addresses.
@@ -322,7 +322,7 @@ var testHookStartTLS func(*tls.Config) // nil, except for tests
 // attachments (see the mime/multipart package), or other mail
 // functionality. Higher-level packages exist outside of the standard
 // library.
-func SendMail(addr string, a smtp.Auth, from string, to []string, msg []byte) error {
+func SendMail(addr string, a smtp.Auth, forceTLS bool, from string, to []string, msg []byte) error {
 	if err := validateLine(from); err != nil {
 		return err
 	}
@@ -336,7 +336,7 @@ func SendMail(addr string, a smtp.Auth, from string, to []string, msg []byte) er
 		return err
 	}
 	var c *Client
-	if port == "465" || port == "smtps" {
+	if port == "465" || port == "smtps" || forceTLS {
 		config := &tls.Config{ServerName: host}
 		conn, err := tls.Dial("tcp", addr, config)
 		if err != nil {
