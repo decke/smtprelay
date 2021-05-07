@@ -34,6 +34,7 @@ var (
 	allowedRecipStr   = flag.String("allowed_recipients", "", "Regular expression for valid TO EMail addresses")
 	allowedRecipients *regexp.Regexp
 	allowedUsers      = flag.String("allowed_users", "", "Path to file with valid users/passwords")
+	command           = flag.String("command", "", "Path to pipe command")
 	remoteHost        = flag.String("remote_host", "", "Outgoing SMTP server")
 	remoteUser        = flag.String("remote_user", "", "Username for authentication on outgoing SMTP server")
 	remotePass        = flag.String("remote_pass", "", "Password for authentication on outgoing SMTP server")
@@ -172,8 +173,8 @@ func ConfigLoad() {
 	// Set up logging as soon as possible
 	setupLogger()
 
-	if *remoteHost == "" {
-		log.Warn("remote_host not set; mail will not be forwarded!")
+	if *remoteHost == "" && *command == "" {
+		log.Warn("no remote_host or command set; mail will not be forwarded!")
 	}
 
 	setupAllowedNetworks()

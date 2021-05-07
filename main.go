@@ -1,11 +1,13 @@
 package main
 
 import (
+	"bytes"
 	"crypto/tls"
 	"fmt"
 	"net"
 	"net/textproto"
 	"os"
+	"os/exec"
 	"os/signal"
 	"strings"
 	"syscall"
@@ -163,8 +165,32 @@ func mailHandler(peer smtpd.Peer, env smtpd.Envelope) error {
 		"uuid": generateUUID(),
 	})
 
+	if *remoteHost == "" && *command == "" {
+		logger.Warning("no remote_host or command set; discarding mail")
+		return nil
+	}
+
+	if *command != "" {
+		cmdLogger := logger.WithField("command", *command)
+
+		var stdout bytes.Buffer
+		var stderr bytes.Buffer
+
+		cmd := exec.Command(*command)
+		cmd.Stdin = bytes.NewReader(env.Data)
+		cmd.Stdout = &stdout
+		cmd.Stderr = &stderr
+
+		err := cmd.Run()
+		if err != nil {
+			cmdLogger.WithError(err).Error(stderr.String())
+			return nil
+		}
+
+		cmdLogger.Info("pipe command successful: " + stdout.String())
+	}
+
 	if *remoteHost == "" {
-		logger.Warning("remote_host not set; discarding mail")
 		return nil
 	}
 
