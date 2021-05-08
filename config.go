@@ -40,6 +40,7 @@ var (
 	remoteAuthStr     = flag.String("remote_auth", "none", "Auth method on outgoing SMTP server (none, plain, login)")
 	remoteAuth        smtp.Auth
 	remoteSender      = flag.String("remote_sender", "", "Sender e-mail address on outgoing SMTP server")
+	remoteForceTLS    = flag.Bool("remote_forcetls", false, "Force TLS for outgoing SMTP server connection")
 	versionInfo       = flag.Bool("version", false, "Show version information")
 )
 

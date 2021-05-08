@@ -183,6 +183,7 @@ func mailHandler(peer smtpd.Peer, env smtpd.Envelope) error {
 	err := SendMail(
 		*remoteHost,
 		remoteAuth,
+		*remoteForceTLS,
 		sender,
 		env.Recipients,
 		env.Data,
