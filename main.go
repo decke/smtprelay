@@ -170,6 +170,8 @@ func mailHandler(peer smtpd.Peer, env smtpd.Envelope) error {
 		return nil
 	}
 
+	env.AddReceivedLine(peer)
+
 	if *command != "" {
 		cmdLogger := logger.WithField("command", *command)
 
@@ -195,8 +197,6 @@ func mailHandler(peer smtpd.Peer, env smtpd.Envelope) error {
 	}
 
 	logger.Info("delivering mail from peer using smarthost")
-
-	env.AddReceivedLine(peer)
 
 	var sender string
 
