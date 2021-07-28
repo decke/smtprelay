@@ -186,10 +186,7 @@ func mailHandler(peer smtpd.Peer, env smtpd.Envelope) error {
 		err := cmd.Run()
 		if err != nil {
 			cmdLogger.WithError(err).Error(stderr.String())
-			return smtpd.Error{
-				Code:    554,
-				Message: "external sender error, contact your SMTP administrator",
-			}
+			return smtpd.Error{Code: 554, Message: "External command failed"}
 		}
 
 		cmdLogger.Info("pipe command successful: " + stdout.String())
