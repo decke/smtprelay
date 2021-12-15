@@ -337,7 +337,10 @@ func SendMail(addr string, a smtp.Auth, from string, to []string, msg []byte) er
 	}
 	var c *Client
 	if port == "465" || port == "smtps" {
-		config := &tls.Config{ServerName: host}
+		config := &tls.Config{
+			ServerName:         host,
+			InsecureSkipVerify: *remoteSkipVerify,
+		}
 		conn, err := tls.Dial("tcp", addr, config)
 		if err != nil {
 			return err
@@ -360,7 +363,10 @@ func SendMail(addr string, a smtp.Auth, from string, to []string, msg []byte) er
 			return err
 		}
 		if ok, _ := c.Extension("STARTTLS"); ok {
-			config := &tls.Config{ServerName: c.serverName}
+			config := &tls.Config{
+				ServerName:         c.serverName,
+				InsecureSkipVerify: *remoteSkipVerify,
+			}
 			if testHookStartTLS != nil {
 				testHookStartTLS(config)
 			}

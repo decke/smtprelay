@@ -36,6 +36,7 @@ var (
 	allowedUsers      = flag.String("allowed_users", "", "Path to file with valid users/passwords")
 	command           = flag.String("command", "", "Path to pipe command")
 	remoteHost        = flag.String("remote_host", "", "Outgoing SMTP server")
+	remoteSkipVerify  = flag.Bool("remote_skip_verify", false, "Ignore invalid remote certificates")
 	remoteUser        = flag.String("remote_user", "", "Username for authentication on outgoing SMTP server")
 	remotePass        = flag.String("remote_pass", "", "Password for authentication on outgoing SMTP server")
 	remoteAuthStr     = flag.String("remote_auth", "none", "Auth method on outgoing SMTP server (none, plain, login)")
