@@ -320,6 +320,12 @@ func main() {
 		server := &smtpd.Server{
 			Hostname:          *hostName,
 			WelcomeMessage:    *welcomeMsg,
+			ReadTimeout:       readTimeout,
+			WriteTimeout:      writeTimeout,
+			DataTimeout:       dataTimeout,
+			MaxConnections:    *maxConnections,
+			MaxMessageSize:    *maxMessageSize,
+			MaxRecipients:     *maxRecipients,
 			ConnectionChecker: connectionChecker,
 			SenderChecker:     senderChecker,
 			RecipientChecker:  recipientChecker,
