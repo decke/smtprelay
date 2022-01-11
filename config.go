@@ -6,6 +6,7 @@ import (
 	"net/smtp"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/sirupsen/logrus"
 	"github.com/vharitonsky/iniflags"
@@ -27,6 +28,15 @@ var (
 	localCert         = flag.String("local_cert", "", "SSL certificate for STARTTLS/TLS")
 	localKey          = flag.String("local_key", "", "SSL private key for STARTTLS/TLS")
 	localForceTLS     = flag.Bool("local_forcetls", false, "Force STARTTLS (needs local_cert and local_key)")
+	readTimeoutStr    = flag.String("read_timeout", "60s", "Socket timeout for read operations")
+	readTimeout       time.Duration
+	writeTimeoutStr   = flag.String("write_timeout", "60s", "Socket timeout for write operations")
+	writeTimeout      time.Duration
+	dataTimeoutStr    = flag.String("data_timeout", "5m", "Socket timeout for DATA command")
+	dataTimeout       time.Duration
+	maxConnections    = flag.Int("max_connections", 100, "Max concurrent connections, use -1 to disable")
+	maxMessageSize    = flag.Int("max_message_size", 10240000, "Max message size in bytes")
+	maxRecipients     = flag.Int("max_recipients", 100, "Max RCPT TO calls for each envelope")
 	allowedNetsStr    = flag.String("allowed_nets", "127.0.0.0/8 ::1/128", "Networks allowed to send mails")
 	allowedNets       = []*net.IPNet{}
 	allowedSenderStr  = flag.String("allowed_sender", "", "Regular expression for valid FROM EMail addresses")
@@ -168,6 +178,43 @@ func setupListeners() {
 	}
 }
 
+func setupTimeouts() {
+	var err error
+
+	readTimeout, err = time.ParseDuration(*readTimeoutStr)
+	if err != nil {
+		log.WithField("read_timeout", *readTimeoutStr).
+			WithError(err).
+			Fatal("read_timeout duration string invalid")
+	}
+	if readTimeout.Seconds() < 1 {
+		log.WithField("read_timeout", *readTimeoutStr).
+			Fatal("read_timeout less than one second")
+	}
+
+	writeTimeout, err = time.ParseDuration(*writeTimeoutStr)
+	if err != nil {
+		log.WithField("write_timeout", *writeTimeoutStr).
+			WithError(err).
+			Fatal("write_timeout duration string invalid")
+	}
+	if writeTimeout.Seconds() < 1 {
+		log.WithField("write_timeout", *writeTimeoutStr).
+			Fatal("write_timeout less than one second")
+	}
+
+	dataTimeout, err = time.ParseDuration(*dataTimeoutStr)
+	if err != nil {
+		log.WithField("data_timeout", *dataTimeoutStr).
+			WithError(err).
+			Fatal("data_timeout duration string invalid")
+	}
+	if dataTimeout.Seconds() < 1 {
+		log.WithField("data_timeout", *dataTimeoutStr).
+			Fatal("data_timeout less than one second")
+	}
+}
+
 func ConfigLoad() {
 	iniflags.Parse()
 
@@ -182,4 +229,5 @@ func ConfigLoad() {
 	setupAllowedPatterns()
 	setupRemoteAuth()
 	setupListeners()
+	setupTimeouts()
 }
