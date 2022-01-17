@@ -29,3 +29,20 @@ produces mail.
 * Forwards all mail to a smarthost (GMail, MailGun or any other SMTP server)
 * Small codebase
 * IPv6 support
+* Docker support
+
+## Using docker
+
+Running smtprelay in a container is supported. You can simply use the included
+`Dockerfile` to build and run the server. When building the container the
+current configuration file `smtprelay.ini` will be copied inside the container,
+so you must either configure the server before building or use a volume to mount
+a different configuration to `/smtprelay.ini`.
+
+As you may decide to use a different port than 25 to listen on, you must uncomment
+the `EXPOSE` statement in the Dockerfile and configure your own port
+(or use docker-compose).
+
+**Important**: Keep in mind that docker does not support IPv6 by default, so you
+either enable support or remove any IPv6 listening directives (`listen = ... [::1]:25`)
+from `smtprelay.ini` before running.
