@@ -161,11 +161,10 @@ func mailHandler(peer smtpd.Peer, env smtpd.Envelope) error {
 		"from": env.Sender,
 		"to":   env.Recipients,
 		"peer": peerIP,
-		"host": *remoteHost,
 		"uuid": generateUUID(),
 	})
 
-	if *remoteHost == "" && *command == "" {
+	if *remotesStr == "" && *command == "" {
 		logger.Warning("no remote_host or command set; discarding mail")
 		return nil
 	}
@@ -192,50 +191,40 @@ func mailHandler(peer smtpd.Peer, env smtpd.Envelope) error {
 		cmdLogger.Info("pipe command successful: " + stdout.String())
 	}
 
-	if *remoteHost == "" {
-		return nil
-	}
+	for _, remote := range remotes {
+		logger = logger.WithField("host", remote.Addr)
+		logger.Info("delivering mail from peer using smarthost")
 
-	logger.Info("delivering mail from peer using smarthost")
+		err := SendMail(
+			remote,
+			env.Sender,
+			env.Recipients,
+			env.Data,
+		)
+		if err != nil {
+			var smtpError smtpd.Error
 
-	var sender string
+			switch err := err.(type) {
+			case *textproto.Error:
+				smtpError = smtpd.Error{Code: err.Code, Message: err.Msg}
 
-	if *remoteSender == "" {
-		sender = env.Sender
-	} else {
-		sender = *remoteSender
-	}
+				logger.WithFields(logrus.Fields{
+					"err_code": err.Code,
+					"err_msg":  err.Msg,
+				}).Error("delivery failed")
+			default:
+				smtpError = smtpd.Error{Code: 554, Message: "Forwarding failed"}
 
-	err := SendMail(
-		*remoteHost,
-		remoteAuth,
-		sender,
-		env.Recipients,
-		env.Data,
-	)
-	if err != nil {
-		var smtpError smtpd.Error
+				logger.WithError(err).
+					Error("delivery failed")
+			}
 
-		switch err.(type) {
-		case *textproto.Error:
-			err := err.(*textproto.Error)
-			smtpError = smtpd.Error{Code: err.Code, Message: err.Msg}
-
-			logger.WithFields(logrus.Fields{
-				"err_code": err.Code,
-				"err_msg":  err.Msg,
-			}).Error("delivery failed")
-		default:
-			smtpError = smtpd.Error{Code: 554, Message: "Forwarding failed"}
-
-			logger.WithError(err).
-				Error("delivery failed")
+			return smtpError
 		}
 
-		return smtpError
+		logger.Debug("delivery successful")
 	}
 
-	logger.Debug("delivery successful")
 	return nil
 }
 

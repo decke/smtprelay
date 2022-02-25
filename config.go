@@ -2,8 +2,8 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"net"
-	"net/smtp"
 	"regexp"
 	"strings"
 	"time"
@@ -45,13 +45,8 @@ var (
 	allowedRecipients *regexp.Regexp
 	allowedUsers      = flag.String("allowed_users", "", "Path to file with valid users/passwords")
 	command           = flag.String("command", "", "Path to pipe command")
-	remoteHost        = flag.String("remote_host", "", "Outgoing SMTP server")
-	remoteSkipVerify  = flag.Bool("remote_skip_verify", false, "Ignore invalid remote certificates")
-	remoteUser        = flag.String("remote_user", "", "Username for authentication on outgoing SMTP server")
-	remotePass        = flag.String("remote_pass", "", "Password for authentication on outgoing SMTP server")
-	remoteAuthStr     = flag.String("remote_auth", "none", "Auth method on outgoing SMTP server (none, plain, login)")
-	remoteAuth        smtp.Auth
-	remoteSender      = flag.String("remote_sender", "", "Sender e-mail address on outgoing SMTP server")
+	remotesStr        = flag.String("remotes", "", "Outgoing SMTP servers")
+	remotes           = []*Remote{}
 	versionInfo       = flag.Bool("version", false, "Show version information")
 )
 
@@ -103,46 +98,18 @@ func setupAllowedPatterns() {
 	}
 }
 
-func setupRemoteAuth() {
-	logger := log.WithField("remote_auth", *remoteAuthStr)
+func setupRemotes() {
+	logger := log.WithField("remotes", *remotesStr)
 
-	// Remote auth disabled?
-	if *remoteAuthStr == "" || *remoteAuthStr == "none" {
-		if *remoteUser != "" {
-			logger.Fatal("remote_user given but not used")
+	if *remotesStr != "" {
+		for _, remoteURL := range strings.Split(*remotesStr, " ") {
+			r, err := ParseRemote(remoteURL)
+			if err != nil {
+				logger.Fatal(fmt.Sprintf("error parsing url: '%s': %v", remoteURL, err))
+			}
+
+			remotes = append(remotes, r)
 		}
-		if *remotePass != "" {
-			logger.Fatal("remote_pass given but not used")
-		}
-
-		// No auth; use empty default
-		return
-	}
-
-	// We need a username, password, and remote host
-	if *remoteUser == "" {
-		logger.Fatal("remote_user required but empty")
-	}
-	if *remotePass == "" {
-		logger.Fatal("remote_pass required but empty")
-	}
-	if *remoteHost == "" {
-		logger.Fatal("remote_auth without remote_host is pointless")
-	}
-
-	host, _, err := net.SplitHostPort(*remoteHost)
-	if err != nil {
-		logger.WithField("remote_host", *remoteHost).
-			Fatal("Invalid remote_host")
-	}
-
-	switch *remoteAuthStr {
-	case "plain":
-		remoteAuth = smtp.PlainAuth("", *remoteUser, *remotePass, host)
-	case "login":
-		remoteAuth = LoginAuth(*remoteUser, *remotePass)
-	default:
-		logger.Fatal("Invalid remote_auth type")
 	}
 }
 
@@ -221,13 +188,13 @@ func ConfigLoad() {
 	// Set up logging as soon as possible
 	setupLogger()
 
-	if *remoteHost == "" && *command == "" {
-		log.Warn("no remote_host or command set; mail will not be forwarded!")
+	if *remotesStr == "" && *command == "" {
+		log.Warn("no remotes or command set; mail will not be forwarded!")
 	}
 
 	setupAllowedNetworks()
 	setupAllowedPatterns()
-	setupRemoteAuth()
+	setupRemotes()
 	setupListeners()
 	setupTimeouts()
 }
