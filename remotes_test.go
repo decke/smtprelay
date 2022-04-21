@@ -11,6 +11,7 @@ func AssertRemoteUrlEquals(t *testing.T, expected *Remote, remotUrl string) {
 	actual, err := ParseRemote(remotUrl)
 	assert.Nil(t, err)
 	assert.NotNil(t, actual)
+	assert.Equal(t, expected.Scheme, actual.Scheme, "Scheme %s", remotUrl)
 	assert.Equal(t, expected.Addr, actual.Addr, "Addr %s", remotUrl)
 	assert.Equal(t, expected.Hostname, actual.Hostname, "Hostname %s", remotUrl)
 	assert.Equal(t, expected.Port, actual.Port, "Port %s", remotUrl)
@@ -26,6 +27,7 @@ func AssertRemoteUrlEquals(t *testing.T, expected *Remote, remotUrl string) {
 
 func TestValidRemoteUrls(t *testing.T) {
 	AssertRemoteUrlEquals(t, &Remote{
+		Scheme:     "smtp",
 		SkipVerify: false,
 		Auth:       nil,
 		Hostname:   "email.com",
@@ -35,6 +37,7 @@ func TestValidRemoteUrls(t *testing.T) {
 	}, "smtp://email.com")
 
 	AssertRemoteUrlEquals(t, &Remote{
+		Scheme:     "smtp",
 		SkipVerify: true,
 		Auth:       nil,
 		Hostname:   "email.com",
@@ -44,6 +47,7 @@ func TestValidRemoteUrls(t *testing.T) {
 	}, "smtp://email.com?skipVerify")
 
 	AssertRemoteUrlEquals(t, &Remote{
+		Scheme:     "smtp",
 		SkipVerify: false,
 		Auth:       smtp.PlainAuth("", "user", "pass", ""),
 		Hostname:   "email.com",
@@ -53,6 +57,7 @@ func TestValidRemoteUrls(t *testing.T) {
 	}, "smtp://user:pass@email.com")
 
 	AssertRemoteUrlEquals(t, &Remote{
+		Scheme:     "smtp",
 		SkipVerify: false,
 		Auth:       LoginAuth("user", "pass"),
 		Hostname:   "email.com",
@@ -62,6 +67,7 @@ func TestValidRemoteUrls(t *testing.T) {
 	}, "smtp://user:pass@email.com?auth=login")
 
 	AssertRemoteUrlEquals(t, &Remote{
+		Scheme:     "smtp",
 		SkipVerify: false,
 		Auth:       LoginAuth("user", "pass"),
 		Hostname:   "email.com",
@@ -71,6 +77,7 @@ func TestValidRemoteUrls(t *testing.T) {
 	}, "smtp://user:pass@email.com/sender@website.com?auth=login")
 
 	AssertRemoteUrlEquals(t, &Remote{
+		Scheme:     "smtps",
 		SkipVerify: false,
 		Auth:       LoginAuth("user", "pass"),
 		Hostname:   "email.com",
@@ -80,11 +87,28 @@ func TestValidRemoteUrls(t *testing.T) {
 	}, "smtps://user:pass@email.com/sender@website.com?auth=login")
 
 	AssertRemoteUrlEquals(t, &Remote{
+		Scheme:     "smtps",
 		SkipVerify: true,
 		Auth:       LoginAuth("user", "pass"),
 		Hostname:   "email.com",
 		Port:       "8425",
 		Addr:       "email.com:8425",
 		Sender:     "sender@website.com",
-	}, "smtp://user:pass@email.com:8425/sender@website.com?auth=login&skipVerify")
+	}, "smtps://user:pass@email.com:8425/sender@website.com?auth=login&skipVerify")
+
+	AssertRemoteUrlEquals(t, &Remote{
+		Scheme:     "starttls",
+		SkipVerify: true,
+		Auth:       LoginAuth("user", "pass"),
+		Hostname:   "email.com",
+		Port:       "8425",
+		Addr:       "email.com:8425",
+		Sender:     "sender@website.com",
+	}, "starttls://user:pass@email.com:8425/sender@website.com?auth=login&skipVerify")
+}
+
+func TestMissingScheme(t *testing.T) {
+	_, err := ParseRemote("http://user:pass@email.com:8425/sender@website.com")
+	assert.NotNil(t, err, "Err must be present")
+	assert.Equal(t, err.Error(), "'http' is not a supported relay scheme")
 }
