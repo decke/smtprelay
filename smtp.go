@@ -374,6 +374,8 @@ func SendMail(r *Remote, from string, to []string, msg []byte) error {
 			if err = c.StartTLS(config); err != nil {
 				return err
 			}
+		} else if r.Scheme == "starttls" {
+			return errors.New("starttls: server does not support extension, check remote scheme")
 		}
 	}
 	if r.Auth != nil && c.ext != nil {
