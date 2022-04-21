@@ -20,6 +20,7 @@ type Remote struct {
 //
 // smtp://[user[:password]@][netloc][:port][/remote_sender][?param1=value1&...]
 // smtps://[user[:password]@][netloc][:port][/remote_sender][?param1=value1&...]
+// starttls://[user[:password]@][netloc][:port][/remote_sender][?param1=value1&...]
 //
 // Supported Params:
 // - skipVerify: can be "true" or empty to prevent ssl verification of remote server's certificate.
@@ -31,12 +32,21 @@ func ParseRemote(remoteURL string) (*Remote, error) {
 		return nil, err
 	}
 
+	if u.Scheme != "smtp" && u.Scheme != "smtps" && u.Scheme != "starttls" {
+		return nil, fmt.Errorf("'%s' is not a supported relay scheme", u.Scheme)
+	}
+
 	hostname, port := u.Hostname(), u.Port()
 
-	if u.Scheme == "smtp" && port == "" {
-		port = "25"
-	} else if u.Scheme == "smtps" && port == "" {
-		port = "465"
+	if port == "" {
+		switch u.Scheme {
+		case "smtp":
+			port = "25"
+		case "smtps":
+			port = "465"
+		case "starttls":
+			port = "587"
+		}
 	}
 
 	q := u.Query()
