@@ -25,6 +25,6 @@ jobs:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         goos: ${{ matrix.goos }}
         goarch: ${{ matrix.goarch }}
-        goversion: "https://golang.org/dl/go1.17.3.linux-amd64.tar.gz"
+        goversion: 1.18
         extra_files: LICENSE README.md smtprelay.ini
         ldflags: -s -w -X "main.appVersion=${{ env.APP_VERSION }}" -X "main.buildTime=${{ env.BUILD_TIME }}"
