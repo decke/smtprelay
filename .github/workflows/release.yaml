@@ -11,7 +11,7 @@ jobs:
     strategy:
       matrix:
         goos: [freebsd, linux, windows]
-        goarch: ["386", amd64]
+        goarch: [amd64, arm64]
     steps:
     - uses: actions/checkout@v3
     
