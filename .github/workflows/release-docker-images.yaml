@@ -7,6 +7,13 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+      - name: dump release
+        run: |
+          echo ${{ github.repository }}
+          echo ${{ github.repository_owner }}
+          echo ${{ github.ref_name }}
+          echo ${{ github.event.release.name }}
+          echo ${{ github.event.release.tag_name }}
       - uses: actions/checkout@v2
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v1
