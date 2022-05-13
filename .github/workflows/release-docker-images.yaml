@@ -20,7 +20,7 @@ jobs:
         with:
           registry: ghcr.io
           username: USERNAME
-          password: ${{ secrets.GITHUB_TOKEN }}
+          password: ${{ secrets.GHCR_IO_TOKEN }}
       - name: Docker smtprelay meta
         id: smtprelay
         uses: docker/metadata-action@v3
