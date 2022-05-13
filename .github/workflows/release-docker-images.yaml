@@ -33,4 +33,4 @@ jobs:
           tags: ${{ steps.smtprelay.outputs.tags }}
           labels: ${{ steps.smtprelay.outputs.labels }}
           push: true
-          platforms: ${{ steps.buildx.outputs.platforms }}
+          platforms: linux/amd64,linux/arm64
