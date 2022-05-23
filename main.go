@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"crypto/tls"
-	"fmt"
 	"net"
 	"net/textproto"
 	"os"
@@ -281,11 +280,6 @@ func getTLSConfig() *tls.Config {
 
 func main() {
 	ConfigLoad()
-
-	if *versionInfo {
-		fmt.Printf("smtprelay/%s (%s)\n", appVersion, buildTime)
-		os.Exit(0)
-	}
 
 	log.WithField("version", appVersion).
 		Debug("starting smtprelay")

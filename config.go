@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"net"
+	"os"
 	"regexp"
 	"strings"
 	"time"
@@ -187,6 +188,11 @@ func ConfigLoad() {
 
 	// Set up logging as soon as possible
 	setupLogger()
+
+	if *versionInfo {
+		fmt.Printf("smtprelay/%s (%s)\n", appVersion, buildTime)
+		os.Exit(0)
+	}
 
 	if *remotesStr == "" && *command == "" {
 		log.Warn("no remotes or command set; mail will not be forwarded!")
