@@ -201,9 +201,7 @@ func ConfigLoad() {
 	)
 
 	if err != nil {
-		//log.WithField("config_error", err).
-		//	Fatal("Config parsing error")
-		os.Exit(0)
+		os.Exit(1)
 	}
 
 	// Set up logging as soon as possible
