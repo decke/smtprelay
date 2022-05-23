@@ -244,7 +244,7 @@ func IniParser(r io.Reader, set func(name, value string) error) error {
 		if index < 0 {
 			name, value = line, "true" // boolean option
 		} else {
-			name, value = line[:index], strings.TrimSpace(line[index:])
+			name, value = strings.TrimSpace(line[:index]), strings.Trim(strings.TrimSpace(line[index+1:]), "\"")
 		}
 
 		if i := strings.Index(value, " #"); i >= 0 {
