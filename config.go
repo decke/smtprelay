@@ -195,13 +195,11 @@ func setupTimeouts() {
 
 func ConfigLoad() {
 	// configuration parsing
-	err := ff.Parse(flagset, os.Args[1:],
+	if err := ff.Parse(flagset, os.Args[1:],
 		ff.WithEnvVarPrefix("smtprelay"),
 		ff.WithConfigFileFlag("config"),
 		ff.WithConfigFileParser(IniParser),
-	)
-
-	if err != nil {
+	); err != nil {
 		os.Exit(1)
 	}
 
