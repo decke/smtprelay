@@ -47,6 +47,7 @@ var (
 	remotesStr       = flagset.String("remotes", "", "Outgoing SMTP servers")
 
 	// additional flags
+	_                = flagset.String("config", "", "Path to config file (ini format)")
 	versionInfo      = flagset.Bool("version", false, "Show version information")
 
 	// internal
