@@ -1,16 +1,18 @@
 package main
 
 import (
+	"bufio"
 	"flag"
 	"fmt"
+	"io"
 	"net"
 	"os"
 	"regexp"
 	"strings"
 	"time"
 
+	"github.com/peterbourgon/ff/v3"
 	"github.com/sirupsen/logrus"
-	"github.com/vharitonsky/iniflags"
 )
 
 var (
@@ -19,36 +21,44 @@ var (
 )
 
 var (
-	logFile           = flag.String("logfile", "", "Path to logfile")
-	logFormat         = flag.String("log_format", "default", "Log output format")
-	logLevel          = flag.String("log_level", "info", "Minimum log level to output")
-	hostName          = flag.String("hostname", "localhost.localdomain", "Server hostname")
-	welcomeMsg        = flag.String("welcome_msg", "", "Welcome message for SMTP session")
-	listenStr         = flag.String("listen", "127.0.0.1:25 [::1]:25", "Address and port to listen for incoming SMTP")
+	flagset = flag.NewFlagSet("smtprelay", flag.ContinueOnError)
+
+	// config flags
+	logFile          = flagset.String("logfile", "", "Path to logfile")
+	logFormat        = flagset.String("log_format", "default", "Log output format")
+	logLevel         = flagset.String("log_level", "info", "Minimum log level to output")
+	hostName         = flagset.String("hostname", "localhost.localdomain", "Server hostname")
+	welcomeMsg       = flagset.String("welcome_msg", "", "Welcome message for SMTP session")
+	listenStr        = flagset.String("listen", "127.0.0.1:25 [::1]:25", "Address and port to listen for incoming SMTP")
+	localCert        = flagset.String("local_cert", "", "SSL certificate for STARTTLS/TLS")
+	localKey         = flagset.String("local_key", "", "SSL private key for STARTTLS/TLS")
+	localForceTLS    = flagset.Bool("local_forcetls", false, "Force STARTTLS (needs local_cert and local_key)")
+	readTimeoutStr   = flagset.String("read_timeout", "60s", "Socket timeout for read operations")
+	writeTimeoutStr  = flagset.String("write_timeout", "60s", "Socket timeout for write operations")
+	dataTimeoutStr   = flagset.String("data_timeout", "5m", "Socket timeout for DATA command")
+	maxConnections   = flagset.Int("max_connections", 100, "Max concurrent connections, use -1 to disable")
+	maxMessageSize   = flagset.Int("max_message_size", 10240000, "Max message size in bytes")
+	maxRecipients    = flagset.Int("max_recipients", 100, "Max RCPT TO calls for each envelope")
+	allowedNetsStr   = flagset.String("allowed_nets", "127.0.0.0/8 ::1/128", "Networks allowed to send mails")
+	allowedSenderStr = flagset.String("allowed_sender", "", "Regular expression for valid FROM EMail addresses")
+	allowedRecipStr  = flagset.String("allowed_recipients", "", "Regular expression for valid TO EMail addresses")
+	allowedUsers     = flagset.String("allowed_users", "", "Path to file with valid users/passwords")
+	command          = flagset.String("command", "", "Path to pipe command")
+	remotesStr       = flagset.String("remotes", "", "Outgoing SMTP servers")
+
+	// additional flags
+	_                = flagset.String("config", "", "Path to config file (ini format)")
+	versionInfo      = flagset.Bool("version", false, "Show version information")
+
+	// internal
 	listenAddrs       = []protoAddr{}
-	localCert         = flag.String("local_cert", "", "SSL certificate for STARTTLS/TLS")
-	localKey          = flag.String("local_key", "", "SSL private key for STARTTLS/TLS")
-	localForceTLS     = flag.Bool("local_forcetls", false, "Force STARTTLS (needs local_cert and local_key)")
-	readTimeoutStr    = flag.String("read_timeout", "60s", "Socket timeout for read operations")
 	readTimeout       time.Duration
-	writeTimeoutStr   = flag.String("write_timeout", "60s", "Socket timeout for write operations")
 	writeTimeout      time.Duration
-	dataTimeoutStr    = flag.String("data_timeout", "5m", "Socket timeout for DATA command")
 	dataTimeout       time.Duration
-	maxConnections    = flag.Int("max_connections", 100, "Max concurrent connections, use -1 to disable")
-	maxMessageSize    = flag.Int("max_message_size", 10240000, "Max message size in bytes")
-	maxRecipients     = flag.Int("max_recipients", 100, "Max RCPT TO calls for each envelope")
-	allowedNetsStr    = flag.String("allowed_nets", "127.0.0.0/8 ::1/128", "Networks allowed to send mails")
 	allowedNets       = []*net.IPNet{}
-	allowedSenderStr  = flag.String("allowed_sender", "", "Regular expression for valid FROM EMail addresses")
 	allowedSender     *regexp.Regexp
-	allowedRecipStr   = flag.String("allowed_recipients", "", "Regular expression for valid TO EMail addresses")
 	allowedRecipients *regexp.Regexp
-	allowedUsers      = flag.String("allowed_users", "", "Path to file with valid users/passwords")
-	command           = flag.String("command", "", "Path to pipe command")
-	remotesStr        = flag.String("remotes", "", "Outgoing SMTP servers")
 	remotes           = []*Remote{}
-	versionInfo       = flag.Bool("version", false, "Show version information")
 )
 
 func localAuthRequired() bool {
@@ -184,7 +194,14 @@ func setupTimeouts() {
 }
 
 func ConfigLoad() {
-	iniflags.Parse()
+	// configuration parsing
+	if err := ff.Parse(flagset, os.Args[1:],
+		ff.WithEnvVarPrefix("smtprelay"),
+		ff.WithConfigFileFlag("config"),
+		ff.WithConfigFileParser(IniParser),
+	); err != nil {
+		os.Exit(1)
+	}
 
 	// Set up logging as soon as possible
 	setupLogger()
@@ -203,4 +220,43 @@ func ConfigLoad() {
 	setupRemotes()
 	setupListeners()
 	setupTimeouts()
+}
+
+// IniParser is a parser for config files in classic key/value style format. Each
+// line is tokenized as a single key/value pair. The first "=" delimited
+// token in the line is interpreted as the flag name, and all remaining tokens
+// are interpreted as the value. Any leading hyphens on the flag name are
+// ignored.
+func IniParser(r io.Reader, set func(name, value string) error) error {
+	s := bufio.NewScanner(r)
+	for s.Scan() {
+		line := strings.TrimSpace(s.Text())
+		if line == "" {
+			continue // skip empties
+		}
+
+		if line[0] == '#' {
+			continue // skip comments
+		}
+
+		var (
+			name  string
+			value string
+			index = strings.IndexRune(line, '=')
+		)
+		if index < 0 {
+			name, value = line, "true" // boolean option
+		} else {
+			name, value = strings.TrimSpace(line[:index]), strings.Trim(strings.TrimSpace(line[index+1:]), "\"")
+		}
+
+		if i := strings.Index(value, " #"); i >= 0 {
+			value = strings.TrimSpace(value[:i])
+		}
+
+		if err := set(name, value); err != nil {
+			return err
+		}
+	}
+	return nil
 }
