@@ -236,7 +236,7 @@ func IniParser(r io.Reader, set func(name, value string) error) error {
 			continue // skip empties
 		}
 
-		if line[0] == '#' {
+		if line[0] == '#' || line[0] == ';' {
 			continue // skip comments
 		}
 
