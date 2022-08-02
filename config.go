@@ -200,6 +200,7 @@ func ConfigLoad() {
 		ff.WithConfigFileFlag("config"),
 		ff.WithConfigFileParser(IniParser),
 	); err != nil {
+		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)
 	}
 
