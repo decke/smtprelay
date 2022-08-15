@@ -25,7 +25,6 @@ type Remote struct {
 // Supported Params:
 // - skipVerify: can be "true" or empty to prevent ssl verification of remote server's certificate.
 // - auth: can be "login" to trigger "LOGIN" auth instead of "PLAIN" auth
-//
 func ParseRemote(remoteURL string) (*Remote, error) {
 	u, err := url.Parse(remoteURL)
 	if err != nil {
