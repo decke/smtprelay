@@ -22,7 +22,7 @@ device which produces mail.
 
 ## Main features
 
-* Simple configuration with ini file or environment variables
+* Simple configuration with ini file .env file or environment variables
 * Supports SMTPS/TLS (465), STARTTLS (587) and unencrypted SMTP (25)
 * Checks for sender, receiver, client IP
 * Authentication support with file (LOGIN, PLAIN)

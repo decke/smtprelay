@@ -47,8 +47,8 @@ var (
 	remotesStr       = flagset.String("remotes", "", "Outgoing SMTP servers")
 
 	// additional flags
-	_                = flagset.String("config", "", "Path to config file (ini format)")
-	versionInfo      = flagset.Bool("version", false, "Show version information")
+	_           = flagset.String("config", "", "Path to config file (ini format)")
+	versionInfo = flagset.Bool("version", false, "Show version information")
 
 	// internal
 	listenAddrs       = []protoAddr{}
@@ -194,14 +194,26 @@ func setupTimeouts() {
 }
 
 func ConfigLoad() {
-	// configuration parsing
-	if err := ff.Parse(flagset, os.Args[1:],
-		ff.WithEnvVarPrefix("smtprelay"),
-		ff.WithConfigFileFlag("config"),
-		ff.WithConfigFileParser(IniParser),
-	); err != nil {
-		fmt.Fprintf(os.Stderr, "error: %v\n", err)
-		os.Exit(1)
+	// use .env file if it exists
+	if _, err := os.Stat(".env"); err == nil {
+		if err := ff.Parse(flagset, os.Args[1:],
+			ff.WithEnvVarPrefix("smtprelay"),
+			ff.WithConfigFile(".env"),
+			ff.WithConfigFileParser(ff.EnvParser),
+		); err != nil {
+			fmt.Fprintf(os.Stderr, "error: %v\n", err)
+			os.Exit(1)
+		}
+	} else {
+		// use env variables and smtprelay.ini file
+		if err := ff.Parse(flagset, os.Args[1:],
+			ff.WithEnvVarPrefix("smtprelay"),
+			ff.WithConfigFileFlag("config"),
+			ff.WithConfigFileParser(IniParser),
+		); err != nil {
+			fmt.Fprintf(os.Stderr, "error: %v\n", err)
+			os.Exit(1)
+		}
 	}
 
 	// Set up logging as soon as possible
