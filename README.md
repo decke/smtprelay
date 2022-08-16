@@ -16,16 +16,17 @@ configure.
 
 My use case is simple. I need to send automatically generated mails from
 cron via msmtp/sSMTP/dma, mails from various services and network printers
-to GMail without giving away my GMail credentials to each device which
-produces mail.
+via a remote SMTP server without giving away my mail credentials to each
+device which produces mail.
 
 
 ## Main features
 
+* Simple configuration with ini file .env file or environment variables
 * Supports SMTPS/TLS (465), STARTTLS (587) and unencrypted SMTP (25)
 * Checks for sender, receiver, client IP
 * Authentication support with file (LOGIN, PLAIN)
 * Enforce encryption for authentication
-* Forwards all mail to a smarthost (GMail, MailGun or any other SMTP server)
+* Forwards all mail to a smarthost (any SMTP server)
 * Small codebase
 * IPv6 support

@@ -4,15 +4,17 @@
 
 // Package smtp implements the Simple Mail Transfer Protocol as defined in RFC 5321.
 // It also implements the following extensions:
+//
 //	8BITMIME  RFC 1652
 //	AUTH      RFC 2554
 //	STARTTLS  RFC 3207
+//
 // Additional extensions may be handled by clients.
 //
 // The smtp package is frozen and is not accepting new features.
 // Some external packages provide more functionality. See:
 //
-//   https://godoc.org/?q=smtp
+//	https://godoc.org/?q=smtp
 package main
 
 import (
@@ -106,7 +108,7 @@ func (c *Client) Hello(localName string) error {
 }
 
 // cmd is a convenience function that sends a command and returns the response
-func (c *Client) cmd(expectCode int, format string, args ...interface{}) (int, string, error) {
+func (c *Client) cmd(expectCode int, format string, args ...any) (int, string, error) {
 	id, err := c.Text.Cmd(format, args...)
 	if err != nil {
 		return 0, "", err
@@ -137,12 +139,8 @@ func (c *Client) ehlo() error {
 	if len(extList) > 1 {
 		extList = extList[1:]
 		for _, line := range extList {
-			args := strings.SplitN(line, " ", 2)
-			if len(args) > 1 {
-				ext[args[0]] = args[1]
-			} else {
-				ext[args[0]] = ""
-			}
+			k, v, _ := strings.Cut(line, " ")
+			ext[k] = v
 		}
 	}
 	if mechs, ok := ext["AUTH"]; ok {
@@ -322,7 +320,11 @@ var testHookStartTLS func(*tls.Config) // nil, except for tests
 // attachments (see the mime/multipart package), or other mail
 // functionality. Higher-level packages exist outside of the standard
 // library.
-func SendMail(addr string, a smtp.Auth, from string, to []string, msg []byte) error {
+func SendMail(r *Remote, from string, to []string, msg []byte) error {
+	if r.Sender != "" {
+		from = r.Sender
+	}
+
 	if err := validateLine(from); err != nil {
 		return err
 	}
@@ -331,19 +333,19 @@ func SendMail(addr string, a smtp.Auth, from string, to []string, msg []byte) er
 			return err
 		}
 	}
-	host, port, err := net.SplitHostPort(addr)
-	if err != nil {
-		return err
-	}
 	var c *Client
-	if port == "465" || port == "smtps" {
-		config := &tls.Config{ServerName: host}
-		conn, err := tls.Dial("tcp", addr, config)
+	var err error
+	if r.Scheme == "smtps" {
+		config := &tls.Config{
+			ServerName:         r.Hostname,
+			InsecureSkipVerify: r.SkipVerify,
+		}
+		conn, err := tls.Dial("tcp", r.Addr, config)
 		if err != nil {
 			return err
 		}
 		defer conn.Close()
-		c, err = NewClient(conn, host)
+		c, err = NewClient(conn, r.Hostname)
 		if err != nil {
 			return err
 		}
@@ -351,7 +353,7 @@ func SendMail(addr string, a smtp.Auth, from string, to []string, msg []byte) er
 			return err
 		}
 	} else {
-		c, err = Dial(addr)
+		c, err = Dial(r.Addr)
 		if err != nil {
 			return err
 		}
@@ -360,20 +362,25 @@ func SendMail(addr string, a smtp.Auth, from string, to []string, msg []byte) er
 			return err
 		}
 		if ok, _ := c.Extension("STARTTLS"); ok {
-			config := &tls.Config{ServerName: c.serverName}
+			config := &tls.Config{
+				ServerName:         c.serverName,
+				InsecureSkipVerify: r.SkipVerify,
+			}
 			if testHookStartTLS != nil {
 				testHookStartTLS(config)
 			}
 			if err = c.StartTLS(config); err != nil {
 				return err
 			}
+		} else if r.Scheme == "starttls" {
+			return errors.New("starttls: server does not support extension, check remote scheme")
 		}
 	}
-	if a != nil && c.ext != nil {
+	if r.Auth != nil && c.ext != nil {
 		if _, ok := c.ext["AUTH"]; !ok {
 			return errors.New("smtp: server doesn't support AUTH")
 		}
-		if err = c.Auth(a); err != nil {
+		if err = c.Auth(r.Auth); err != nil {
 			return err
 		}
 	}
