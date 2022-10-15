@@ -45,6 +45,7 @@ var (
 	allowedUsers     = flagset.String("allowed_users", "", "Path to file with valid users/passwords")
 	command          = flagset.String("command", "", "Path to pipe command")
 	remotesStr       = flagset.String("remotes", "", "Outgoing SMTP servers")
+	strictSender     = flagset.Bool("strict_sender", false, "Use only SMTP servers with Sender matches to From")
 
 	// additional flags
 	_           = flagset.String("config", "", "Path to config file (ini format)")
