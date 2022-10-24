@@ -5,7 +5,7 @@ require (
 	github.com/google/uuid v1.3.0
 	github.com/peterbourgon/ff/v3 v3.3.0
 	github.com/sirupsen/logrus v1.9.0
-	github.com/stretchr/testify v1.8.0
+	github.com/stretchr/testify v1.8.1
 	golang.org/x/crypto v0.0.0-20220411220226-7b82a4e95df4
 )
 
