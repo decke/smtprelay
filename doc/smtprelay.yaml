@@ -1,0 +1,22 @@
+# Config for Podman >= 4.3
+
+kind: Pod
+metadata:
+  name: "smtprelay"
+  labels:
+    app: "smtprelay"
+spec:
+  containers:
+    - name: "smtprelay"
+      image: "smtprelay:latest"
+      ports:
+        - containerPort: 2525
+      command: ["smtprelay"]
+      args:
+        - "-listen=0.0.0.0:2525"
+        - "-hostname=your-hostname"
+        - "-allowed_nets=0.0.0.0" # Allow local Podman container network
+        - "-allowed_sender=allowed-sender-address"
+        - "-remotes=starttls://user:pass@hostname?skipVerify=true"
+      dnsConfig: { }
+      restartPolicy: Never

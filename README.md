@@ -39,5 +39,10 @@ podman build . -t "smtprelay"
 
 Push to registry (see [podman push](https://docs.podman.io/en/latest/markdown/podman-push.1.html))
 ```shell
-podman push "smtprelay" "your-repository-url"
+podman push "smtprelay" "your-repository-url:version"
 ```
+
+## Run via podman
+
+1. Adapt `doc/smtprelay.yaml`
+2. Run `podman play kube doc/smtprelay.yaml`
