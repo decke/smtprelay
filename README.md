@@ -30,3 +30,14 @@ device which produces mail.
 * Forwards all mail to a smarthost (any SMTP server)
 * Small codebase
 * IPv6 support
+
+## Build via podman
+
+```shell
+podman build . -t "smtprelay"
+```
+
+Push to registry (see [podman push](https://docs.podman.io/en/latest/markdown/podman-push.1.html))
+```shell
+podman push "smtprelay" "your-repository-url"
+```
