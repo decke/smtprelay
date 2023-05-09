@@ -3,7 +3,7 @@ module github.com/decke/smtprelay
 require (
 	github.com/chrj/smtpd v0.3.1
 	github.com/google/uuid v1.3.0
-	github.com/peterbourgon/ff/v3 v3.3.0
+	github.com/peterbourgon/ff/v3 v3.3.1
 	github.com/sirupsen/logrus v1.9.0
 	github.com/stretchr/testify v1.8.2
 	golang.org/x/crypto v0.8.0
