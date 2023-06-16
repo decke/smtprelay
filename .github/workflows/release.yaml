@@ -20,11 +20,11 @@ jobs:
     - name: Set BUILD_TIME env
       run: echo BUILD_TIME=$(date) >> ${GITHUB_ENV}
       
-    - uses: wangyoucao577/go-release-action@v1.38
+    - uses: wangyoucao577/go-release-action@v1
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         goos: ${{ matrix.goos }}
         goarch: ${{ matrix.goarch }}
-        goversion: 1.20
+        goversion: "1.20"
         extra_files: LICENSE README.md smtprelay.ini
         ldflags: -s -w -X "main.appVersion=${{ env.APP_VERSION }}" -X "main.buildTime=${{ env.BUILD_TIME }}"
