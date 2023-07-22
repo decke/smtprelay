@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"crypto/tls"
+	"fmt"
 	"net"
 	"net/textproto"
 	"os"
@@ -188,7 +189,16 @@ func mailHandler(peer smtpd.Peer, env smtpd.Envelope) error {
 		var stdout bytes.Buffer
 		var stderr bytes.Buffer
 
-		cmd := exec.Command(*command)
+		environ := os.Environ()
+		environ = append(environ, fmt.Sprintf("%s=%s", "SMTPRELAY_FROM", env.Sender))
+		environ = append(environ, fmt.Sprintf("%s=%s", "SMTPRELAY_TO", env.Recipients))
+		environ = append(environ, fmt.Sprintf("%s=%s", "SMTPRELAY_PEER", peerIP))
+
+		cmd := exec.Cmd{
+			Env: environ,
+			Path: *command,
+		}
+
 		cmd.Stdin = bytes.NewReader(env.Data)
 		cmd.Stdout = &stdout
 		cmd.Stderr = &stderr
