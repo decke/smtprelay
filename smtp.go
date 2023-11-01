@@ -322,6 +322,11 @@ var testHookStartTLS func(*tls.Config) // nil, except for tests
 // library.
 func SendMail(r *Remote, from string, to []string, msg []byte) error {
 	if r.Sender != "" {
+		// Update the message headers
+		regexSearch := regexp.MustCompile("([Ff]rom:[\t ]+(?:[^\t ]+[\t ]+)?<?)"+regexp.QuoteMeta(from)+"(>)?\n")
+		regexReplace := "${1}"+r.Sender+"${2}\n"
+		msg = []byte(regexSearch.ReplaceAllString(string(msg), regexReplace))
+		// Update the from attribute
 		from = r.Sender
 	}
 
