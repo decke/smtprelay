@@ -195,7 +195,7 @@ func mailHandler(peer smtpd.Peer, env smtpd.Envelope) error {
 		environ = append(environ, fmt.Sprintf("%s=%s", "SMTPRELAY_PEER", peerIP))
 
 		cmd := exec.Cmd{
-			Env: environ,
+			Env:  environ,
 			Path: *command,
 		}
 

@@ -5,7 +5,6 @@
 Simple Golang based SMTP relay/proxy server that accepts mail via SMTP
 and forwards it directly to another SMTP server.
 
-
 ## Why another SMTP server?
 
 Outgoing mails are usually send via SMTP to an MTA (Mail Transfer Agent)
@@ -19,7 +18,6 @@ cron via msmtp/sSMTP/dma, mails from various services and network printers
 via a remote SMTP server without giving away my mail credentials to each
 device which produces mail.
 
-
 ## Main features
 
 * Simple configuration with ini file .env file or environment variables
@@ -30,3 +28,7 @@ device which produces mail.
 * Forwards all mail to a smarthost (any SMTP server)
 * Small codebase
 * IPv6 support
+
+## Rate Limit
+
+* Add rate limit option in remote (?rate=1/1h) using <https://github.com/sethvargo/go-limiter>
