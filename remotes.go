@@ -4,16 +4,23 @@ import (
 	"fmt"
 	"net/smtp"
 	"net/url"
+	"strconv"
+	"strings"
+	"time"
+
+	"github.com/sethvargo/go-limiter"
+	"github.com/sethvargo/go-limiter/memorystore"
 )
 
 type Remote struct {
-	SkipVerify bool
-	Auth       smtp.Auth
-	Scheme     string
-	Hostname   string
-	Port       string
-	Addr       string
-	Sender     string
+	SkipVerify  bool
+	Auth        smtp.Auth
+	Scheme      string
+	Hostname    string
+	Port        string
+	Addr        string
+	Sender      string
+	RateLimiter *limiter.Store
 }
 
 // ParseRemote creates a remote from a given url in the following format:
@@ -25,6 +32,7 @@ type Remote struct {
 // Supported Params:
 // - skipVerify: can be "true" or empty to prevent ssl verification of remote server's certificate.
 // - auth: can be "login" to trigger "LOGIN" auth instead of "PLAIN" auth
+// - rate: an optional rate limiter in the format <msgs>/<time unit> like 100/1h
 func ParseRemote(remoteURL string) (*Remote, error) {
 	u, err := url.Parse(remoteURL)
 	if err != nil {
@@ -77,6 +85,23 @@ func ParseRemote(remoteURL string) (*Remote, error) {
 
 	if u.Path != "" {
 		r.Sender = u.Path[1:]
+	}
+
+	if hasVal, rate := q.Has("rate"), q.Get("rate"); hasVal && strings.Contains(rate, "/") {
+		i, err := strconv.ParseInt(strings.Split(rate, "/")[0], 10, 32)
+		if err == nil {
+			t, err := time.ParseDuration(strings.Split(rate, "/")[1])
+			log.Infof("Configuring rate limiter %v/%v", i, t)
+			if err == nil {
+				store, err := memorystore.New(&memorystore.Config{
+					Tokens:   uint64(i),
+					Interval: t,
+				})
+				if err == nil {
+					r.RateLimiter = &store
+				}
+			}
+		}
 	}
 
 	return r, nil

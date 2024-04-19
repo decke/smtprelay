@@ -18,6 +18,7 @@
 package main
 
 import (
+	"context"
 	"crypto/tls"
 	"encoding/base64"
 	"errors"
@@ -27,6 +28,8 @@ import (
 	"net/smtp"
 	"net/textproto"
 	"strings"
+
+	"github.com/chrj/smtpd"
 )
 
 // A Client represents a client connection to an SMTP server.
@@ -321,6 +324,13 @@ var testHookStartTLS func(*tls.Config) // nil, except for tests
 // functionality. Higher-level packages exist outside of the standard
 // library.
 func SendMail(r *Remote, from string, to []string, msg []byte) error {
+	if r.RateLimiter != nil {
+		tokens, remaining, _, ok, err := (*r.RateLimiter).Take(context.Background(), "")
+		if err != nil || !ok {
+			return smtpd.Error{Code: 452, Message: "Rate limit reached"}
+		}
+		log.Debugf("Remaining %v tokens of %v", remaining, tokens)
+	}
 	if r.Sender != "" {
 		from = r.Sender
 	}
