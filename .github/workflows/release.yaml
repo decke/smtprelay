@@ -1,8 +1,12 @@
 name: Release Go Binaries
 
-on: 
+on:
   release:
     types: [created]
+
+permissions:
+    contents: write
+    packages: write
 
 jobs:
   releases-matrix:
