@@ -1,0 +1,18 @@
+[Unit]
+Description=smtprelay
+After=network.target
+
+[Service]
+User=root
+Group=root
+WorkingDirectory=/usr/bin
+Type=forking
+RemainAfterExit=yes
+ExecStart=/bin/sh -c '/usr/bin/nohup /usr/bin/smtprelay --config /etc/smtprelay.ini &'
+StandardOutput=inherit
+StandardError=inherit
+Restart=always
+KillMode=process
+
+[Install]
+WantedBy=multi-user.target
