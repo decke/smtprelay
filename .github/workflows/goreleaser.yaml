@@ -28,7 +28,7 @@ jobs:
           distribution: goreleaser
           # 'latest', 'nightly', or a semver
           version: '~> v2'
-          args: release --clean
+          args: release --snapshot --clean
           workdir: .
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
