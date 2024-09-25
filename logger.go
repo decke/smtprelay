@@ -30,6 +30,8 @@ func setupLogger() {
 
 	// Handle log_format
 	switch *logFormat {
+	case "journal":
+		enableLinuxJournal()
 	case "json":
 		log.SetFormatter(&logrus.JSONFormatter{
 			TimestampFormat:   time.RFC3339Nano,
