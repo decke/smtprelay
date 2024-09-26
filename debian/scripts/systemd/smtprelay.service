@@ -8,9 +8,9 @@ Group=root
 WorkingDirectory=/usr/bin
 Type=forking
 RemainAfterExit=yes
-ExecStart=/bin/sh -c '/usr/bin/nohup /usr/bin/smtprelay --config /etc/smtprelay.ini &'
-StandardOutput=inherit
-StandardError=inherit
+ExecStart=/usr/bin/smtprelay --config /etc/smtprelay.ini
+StandardOutput=journal
+StandardError=journal
 Restart=always
 KillMode=process
 
