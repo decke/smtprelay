@@ -39,6 +39,7 @@ jobs:
         name: Create Release
         uses: ncipollo/release-action@v1
         with:
+          tag: v1.12
           artifacts: "dist/*.tar.gz,dist/*.deb,dist/*.zip"
           # bodyFile: "body.md"
 
