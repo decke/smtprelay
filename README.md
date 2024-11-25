@@ -3,7 +3,7 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/decke/smtprelay)](https://goreportcard.com/report/github.com/decke/smtprelay)
 
 Simple Golang based SMTP relay/proxy server that accepts mail via SMTP
-and forwards it directly to another SMTP server.
+and forwards it directly to another SMTP server. Fork to add the ability to cache mail that can not be sent due to rate limit. Mail are sent when the the service will not exceed the rate limit. 
 
 
 ## Why another SMTP server?
@@ -30,3 +30,4 @@ device which produces mail.
 * Forwards all mail to a smarthost (any SMTP server)
 * Small codebase
 * IPv6 support
+* Cache mail to avoid exceeding the rate limit per remote

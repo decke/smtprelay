@@ -26,7 +26,11 @@ import (
 	"net"
 	"net/smtp"
 	"net/textproto"
+	"os"
 	"strings"
+	"time"
+
+	"github.com/chrj/smtpd"
 )
 
 // A Client represents a client connection to an SMTP server.
@@ -320,7 +324,28 @@ var testHookStartTLS func(*tls.Config) // nil, except for tests
 // attachments (see the mime/multipart package), or other mail
 // functionality. Higher-level packages exist outside of the standard
 // library.
+
 func SendMail(r *Remote, from string, to []string, msg []byte) error {
+	if r.RateLimiter != nil {
+		// Do the background in the main
+		tokens, remaining, _, ok, err := (*r.RateLimiter).Take(getContext(r).context, "")
+		log.Infof("Remaining %v tokens of %v", remaining, tokens)
+
+		if err != nil || !ok {
+			//			return smtpd.Error{Code: 452, Message: "Rate limit reached"}
+			theTime := time.Now()
+			filename := theTime.Format("2006-1-2-15-4-5") + ";" + from + ";" + strings.Join(to, ";")
+			filenameb64 := base64.URLEncoding.EncodeToString([]byte(filename))
+			err := os.WriteFile("/tmp/"+filenameb64+".mail", msg, 0644)
+			getContext(r).cache.Set(filenameb64, filename)
+			if err != nil {
+				// handle error
+			}
+			return smtpd.Error{Code: 452, Message: "Rate limit reached"}
+
+		}
+		log.Debugf("Remaining %v tokens of %v", remaining, tokens)
+	}
 	if r.Sender != "" {
 		from = r.Sender
 	}
