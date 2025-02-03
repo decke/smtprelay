@@ -17,14 +17,14 @@ jobs:
         goos: [freebsd, linux, windows]
         goarch: [amd64, arm64]
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
     
     - name: Set APP_VERSION env
       run: echo APP_VERSION=$(echo ${GITHUB_REF} | rev | cut -d'/' -f 1 | rev ) >> ${GITHUB_ENV}
     - name: Set BUILD_TIME env
       run: echo BUILD_TIME=$(date) >> ${GITHUB_ENV}
       
-    - uses: wangyoucao577/go-release-action@v1
+    - uses: wangyoucao577/go-release-action@481a2c1a0f1be199722e3e9b74d7199acafc30a8 # v1.53
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         goos: ${{ matrix.goos }}
