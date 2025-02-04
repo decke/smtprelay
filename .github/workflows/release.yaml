@@ -4,9 +4,8 @@ on:
   release:
     types: [created]
 
-permissions:
-    contents: write
-    packages: write
+# Declare default permissions as read only.
+permissions: read-all
 
 jobs:
   releases-matrix:
@@ -16,6 +15,10 @@ jobs:
       matrix:
         goos: [freebsd, linux, windows]
         goarch: [amd64, arm64]
+    permissions:
+        contents: write
+        packages: write
+
     steps:
     - name: Harden Runner
       uses: step-security/harden-runner@cb605e52c26070c328afc4562f0b4ada7618a84e # v2.10.4
