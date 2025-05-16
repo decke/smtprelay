@@ -234,7 +234,7 @@ func mailHandler(peer smtpd.Peer, env smtpd.Envelope) error {
 					"err_msg":  err.Msg,
 				}).Error("delivery failed")
 			default:
-				smtpError = smtpd.Error{Code: 554, Message: "Forwarding failed"}
+				smtpError = smtpd.Error{Code: 421, Message: "Forwarding failed"}
 
 				logger.WithError(err).
 					Error("delivery failed")
