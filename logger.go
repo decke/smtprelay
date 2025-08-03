@@ -2,59 +2,84 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"os"
+	"strings"
 	"time"
 
-	"github.com/sirupsen/logrus"
+	"github.com/DeRuina/timberjack"
+	"github.com/rs/zerolog"
 )
 
 var (
-	log *logrus.Logger
+	rotator *timberjack.Logger
+	log     *zerolog.Logger
 )
 
 func setupLogger() {
-	log = logrus.New()
+	zerolog.TimeFieldFormat = time.RFC3339
 
 	// Handle logfile
+	var writer io.Writer
 	if *logFile == "" {
-		log.SetOutput(os.Stderr)
+		writer = os.Stderr
 	} else {
-		writer, err := os.OpenFile(*logFile, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0600)
-		if err != nil {
-			fmt.Printf("cannot open log file: %s\n", err)
-			os.Exit(1)
+		rotator = &timberjack.Logger{
+			Filename:         *logFile,
+			MaxSize:          10, // megabytes before rotation
+			MaxBackups:       3,
+			MaxAge:           30, // days
+			Compress:         true,
+			BackupTimeFormat: "20060102150405",
 		}
-
-		log.SetOutput(writer)
+		writer = rotator
 	}
 
 	// Handle log_format
 	switch *logFormat {
 	case "json":
-		log.SetFormatter(&logrus.JSONFormatter{
-			TimestampFormat:   time.RFC3339Nano,
-			DisableHTMLEscape: true,
-		})
+		// zerolog default is JSON
 	case "plain":
-		log.SetFormatter(&logrus.TextFormatter{
-			DisableTimestamp: true,
-		})
+		writer = zerolog.ConsoleWriter{
+			Out:        writer,
+			NoColor:    true,
+			TimeFormat: "",
+			FormatTimestamp: func(i interface{}) string {
+				return "" // avoid default time
+			},
+		}
 	case "", "default":
-		log.SetFormatter(&logrus.TextFormatter{
-			FullTimestamp: true,
-		})
+		writer = zerolog.ConsoleWriter{
+			Out:        writer,
+			NoColor:    true,
+			TimeFormat: time.RFC3339,
+		}
+	case "pretty":
+		writer = zerolog.ConsoleWriter{
+			Out:        writer,
+			TimeFormat: time.RFC3339Nano,
+		}
 	default:
 		fmt.Fprintf(os.Stderr, "Invalid log_format: %s\n", *logFormat)
 		os.Exit(1)
 	}
 
-	// Handle log_level
-	level, err := logrus.ParseLevel(*logLevel)
-	if err != nil {
-		level = logrus.InfoLevel
+	l := zerolog.New(writer).With().Timestamp().Logger()
+	log = &l
 
-		log.WithField("given_level", *logLevel).
-			Warn("could not parse log level, defaulting to 'info'")
+	// Handle log_level
+	level, err := zerolog.ParseLevel(strings.ToLower(*logLevel))
+	if err != nil {
+		level = zerolog.InfoLevel
+		log.Warn().Str("given_level", *logLevel).
+			Msg("could not parse log level, defaulting to 'info'")
 	}
-	log.SetLevel(level)
+	zerolog.SetGlobalLevel(level)
+}
+
+// Call this on shutdown if you want to close the rotator and stop timers cleanly
+func closeLogger() {
+	if rotator != nil {
+		rotator.Close()
+	}
 }

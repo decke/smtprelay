@@ -14,7 +14,6 @@ import (
 
 	"github.com/chrj/smtpd"
 	"github.com/google/uuid"
-	"github.com/sirupsen/logrus"
 )
 
 func connectionChecker(peer smtpd.Peer) error {
@@ -32,9 +31,9 @@ func connectionChecker(peer smtpd.Peer) error {
 		}
 	}
 
-	log.WithFields(logrus.Fields{
-		"ip": peerIP,
-	}).Warn("Connection refused from address outside of allowed_nets")
+	log.Warn().
+		Str("ip", peerIP.String()).
+		Msg("Connection refused from address outside of allowed_nets")
 	return smtpd.Error{Code: 421, Message: "Denied"}
 }
 
@@ -87,19 +86,21 @@ func senderChecker(peer smtpd.Peer, addr string) error {
 		user, err := AuthFetch(peer.Username)
 		if err != nil {
 			// Shouldn't happen: authChecker already validated username+password
-			log.WithFields(logrus.Fields{
-				"peer":     peer.Addr,
-				"username": peer.Username,
-			}).WithError(err).Warn("could not fetch auth user")
+			log.Warn().
+				Str("peer", peer.Addr.String()).
+				Str("username", peer.Username).
+				Err(err).
+				Msg("could not fetch auth user")
 			return smtpd.Error{Code: 451, Message: "Bad sender address"}
 		}
 
 		if !addrAllowed(addr, user.allowedAddresses) {
-			log.WithFields(logrus.Fields{
-				"peer":           peer.Addr,
-				"username":       peer.Username,
-				"sender_address": addr,
-			}).Warn("sender address not allowed for authenticated user")
+			log.Warn().
+				Str("peer", peer.Addr.String()).
+				Str("username", peer.Username).
+				Str("sender_address", addr).
+				Err(err).
+				Msg("sender address not allowed for authenticated user")
 			return smtpd.Error{Code: 451, Message: "Bad sender address"}
 		}
 	}
@@ -114,10 +115,10 @@ func senderChecker(peer smtpd.Peer, addr string) error {
 		return nil
 	}
 
-	log.WithFields(logrus.Fields{
-		"sender_address": addr,
-		"peer":           peer.Addr,
-	}).Warn("sender address not allowed by allowed_sender pattern")
+	log.Warn().
+		Str("sender_address", addr).
+		Str("peer", peer.Addr.String()).
+		Msg("sender address not allowed by allowed_sender pattern")
 	return smtpd.Error{Code: 451, Message: "Bad sender address"}
 }
 
@@ -132,20 +133,21 @@ func recipientChecker(peer smtpd.Peer, addr string) error {
 		return nil
 	}
 
-	log.WithFields(logrus.Fields{
-		"peer":              peer.Addr,
-		"recipient_address": addr,
-	}).Warn("recipient address not allowed by allowed_recipients pattern")
+	log.Warn().
+		Str("peer", peer.Addr.String()).
+		Str("recipient_address", addr).
+		Msg("recipient address not allowed by allowed_recipients pattern")
 	return smtpd.Error{Code: 451, Message: "Bad recipient address"}
 }
 
 func authChecker(peer smtpd.Peer, username string, password string) error {
 	err := AuthCheckPassword(username, password)
 	if err != nil {
-		log.WithFields(logrus.Fields{
-			"peer":     peer.Addr,
-			"username": username,
-		}).WithError(err).Warn("auth error")
+		log.Warn().
+			Str("peer", peer.Addr.String()).
+			Str("username", username).
+			Err(err).
+			Msg("auth error")
 		return smtpd.Error{Code: 535, Message: "Authentication credentials invalid"}
 	}
 	return nil
@@ -157,12 +159,12 @@ func mailHandler(peer smtpd.Peer, env smtpd.Envelope) error {
 		peerIP = addr.IP.String()
 	}
 
-	logger := log.WithFields(logrus.Fields{
-		"from": env.Sender,
-		"to":   env.Recipients,
-		"peer": peerIP,
-		"uuid": generateUUID(),
-	})
+	logger := log.With().
+		Str("from", env.Sender).
+		Strs("to", env.Recipients).
+		Str("peer", peerIP).
+		Str("uuid", generateUUID()).
+		Logger()
 
 	var envRemotes []*Remote
 
@@ -177,14 +179,14 @@ func mailHandler(peer smtpd.Peer, env smtpd.Envelope) error {
 	}
 
 	if len(envRemotes) == 0 && *command == "" {
-		logger.Warning("no remote_host or command set; discarding mail")
+		logger.Warn().Msg("no remote_host or command set; discarding mail")
 		return smtpd.Error{Code: 554, Message: "There are no appropriate remote_host or command"}
 	}
 
 	env.AddReceivedLine(peer)
 
 	if *command != "" {
-		cmdLogger := logger.WithField("command", *command)
+		cmdLogger := logger.With().Str("command", *command).Logger()
 
 		var stdout bytes.Buffer
 		var stderr bytes.Buffer
@@ -205,16 +207,16 @@ func mailHandler(peer smtpd.Peer, env smtpd.Envelope) error {
 
 		err := cmd.Run()
 		if err != nil {
-			cmdLogger.WithError(err).Error(stderr.String())
+			cmdLogger.Error().Err(err).Msg(stderr.String())
 			return smtpd.Error{Code: 554, Message: "External command failed"}
 		}
 
-		cmdLogger.Info("pipe command successful: " + stdout.String())
+		cmdLogger.Info().Msg("pipe command successful: " + stdout.String())
 	}
 
 	for _, remote := range envRemotes {
-		logger = logger.WithField("host", remote.Addr)
-		logger.Info("delivering mail from peer using smarthost")
+		logger = logger.With().Str("host", remote.Addr).Logger()
+		logger.Info().Msg("delivering mail from peer using smarthost")
 
 		err := SendMail(
 			remote,
@@ -229,21 +231,22 @@ func mailHandler(peer smtpd.Peer, env smtpd.Envelope) error {
 			case *textproto.Error:
 				smtpError = smtpd.Error{Code: err.Code, Message: err.Msg}
 
-				logger.WithFields(logrus.Fields{
-					"err_code": err.Code,
-					"err_msg":  err.Msg,
-				}).Error("delivery failed")
+				logger.Error().
+					Int("err_code", err.Code).
+					Str("err_msg", err.Msg).
+					Msg("delivery failed")
 			default:
 				smtpError = smtpd.Error{Code: 421, Message: "Forwarding failed"}
 
-				logger.WithError(err).
-					Error("delivery failed")
+				logger.Error().
+					Err(err).
+					Msg("delivery failed")
 			}
 
 			return smtpError
 		}
 
-		logger.Debug("delivery successful")
+		logger.Debug().Msg("delivery successful")
 	}
 
 	return nil
@@ -253,8 +256,9 @@ func generateUUID() string {
 	uniqueID, err := uuid.NewRandom()
 
 	if err != nil {
-		log.WithError(err).
-			Error("could not generate UUIDv4")
+		log.Error().
+			Err(err).
+			Msg("could not generate UUIDv4")
 
 		return ""
 	}
@@ -280,16 +284,17 @@ func getTLSConfig() *tls.Config {
 	}
 
 	if *localCert == "" || *localKey == "" {
-		log.WithFields(logrus.Fields{
-			"cert_file": *localCert,
-			"key_file":  *localKey,
-		}).Fatal("TLS certificate/key file not defined in config")
+		log.Fatal().
+			Str("cert_file", *localCert).
+			Str("key_file", *localKey).
+			Msg("TLS certificate/key file not defined in config")
 	}
 
 	cert, err := tls.LoadX509KeyPair(*localCert, *localKey)
 	if err != nil {
-		log.WithField("error", err).
-			Fatal("cannot load X509 keypair")
+		log.Fatal().
+			Err(err).
+			Msg("cannot load X509 keypair")
 	}
 
 	return &tls.Config{
@@ -303,16 +308,18 @@ func getTLSConfig() *tls.Config {
 func main() {
 	ConfigLoad()
 
-	log.WithField("version", appVersion).
-		Debug("starting smtprelay")
+	log.Debug().
+		Str("version", appVersion).
+		Msg("starting smtprelay")
 
 	// Load allowed users file
 	if localAuthRequired() {
 		err := AuthLoadFile(*allowedUsers)
 		if err != nil {
-			log.WithField("file", *allowedUsers).
-				WithError(err).
-				Fatal("cannot load allowed users file")
+			log.Fatal().
+				Str("file", *allowedUsers).
+				Err(err).
+				Msg("cannot load allowed users file")
 		}
 	}
 
@@ -320,7 +327,7 @@ func main() {
 
 	// Create a server for each desired listen address
 	for _, listen := range listenAddrs {
-		logger := log.WithField("address", listen.address)
+		logger := log.With().Str("address", listen.address).Logger()
 
 		server := &smtpd.Server{
 			Hostname:          *hostName,
@@ -346,29 +353,32 @@ func main() {
 
 		switch listen.protocol {
 		case "":
-			logger.Info("listening on address")
+			logger.Info().Msg("listening on address")
 			lsnr, err = net.Listen("tcp", listen.address)
 
 		case "starttls":
 			server.TLSConfig = getTLSConfig()
 			server.ForceTLS = *localForceTLS
 
-			logger.Info("listening on address (STARTTLS)")
+			logger.Info().Msg("listening on address (STARTTLS)")
 			lsnr, err = net.Listen("tcp", listen.address)
 
 		case "tls":
 			server.TLSConfig = getTLSConfig()
 
-			logger.Info("listening on address (TLS)")
+			logger.Info().Msg("listening on address (TLS)")
 			lsnr, err = tls.Listen("tcp", listen.address, server.TLSConfig)
 
 		default:
-			logger.WithField("protocol", listen.protocol).
-				Fatal("unknown protocol in listen address")
+			logger.Fatal().
+				Str("protocol", listen.protocol).
+				Msg("unknown protocol in listen address")
 		}
 
 		if err != nil {
-			logger.WithError(err).Fatal("error starting listener")
+			logger.Fatal().
+				Err(err).
+				Msg("error starting listener")
 		}
 		servers = append(servers, server)
 
@@ -381,27 +391,31 @@ func main() {
 
 	// First close the listeners
 	for _, server := range servers {
-		logger := log.WithField("address", server.Address())
-		logger.Debug("Shutting down server")
+		logger := log.With().Str("address", server.Address().String()).Logger()
+		logger.Debug().Msg("Shutting down server")
 		err := server.Shutdown(false)
 		if err != nil {
-			logger.WithError(err).
-				Warning("Shutdown failed")
+			logger.Warn().
+				Err(err).
+				Msg("Shutdown failed")
 		}
 	}
 
 	// Then wait for the clients to exit
 	for _, server := range servers {
-		logger := log.WithField("address", server.Address())
-		logger.Debug("Waiting for server")
+		logger := log.With().Str("address", server.Address().String()).Logger()
+		logger.Debug().Msg("Waiting for server")
 		err := server.Wait()
 		if err != nil {
-			logger.WithError(err).
-				Warning("Wait failed")
+			logger.Warn().
+				Err(err).
+				Msg("Wait failed")
 		}
 	}
 
-	log.Debug("done")
+	log.Debug().Msg("done")
+
+	closeLogger()
 }
 
 func handleSignals() {
@@ -410,6 +424,7 @@ func handleSignals() {
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGTERM)
 	sig := <-sigs
 
-	log.WithField("signal", sig).
-		Info("shutting down in response to received signal")
+	log.Info().
+		Str("signal", sig.String()).
+		Msg("shutting down in response to received signal")
 }
