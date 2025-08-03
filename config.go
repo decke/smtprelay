@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/peterbourgon/ff/v3"
-	"github.com/sirupsen/logrus"
 )
 
 var (
@@ -70,18 +69,19 @@ func setupAllowedNetworks() {
 	for _, netstr := range splitstr(*allowedNetsStr, ' ') {
 		baseIP, allowedNet, err := net.ParseCIDR(netstr)
 		if err != nil {
-			log.WithField("netstr", netstr).
-				WithError(err).
-				Fatal("Invalid CIDR notation in allowed_nets")
+			log.Fatal().
+				Str("netstr", netstr).
+				Err(err).
+				Msg("Invalid CIDR notation in allowed_nets")
 		}
 
 		// Reject any network specification where any host bits are set,
 		// meaning the address refers to a host and not a network.
 		if !allowedNet.IP.Equal(baseIP) {
-			log.WithFields(logrus.Fields{
-				"given_net":  netstr,
-				"proper_net": allowedNet,
-			}).Fatal("Invalid network in allowed_nets (host bits set)")
+			log.Fatal().
+				Str("given_net", netstr).
+				Str("proper_net", allowedNet.String()).
+				Msg("Invalid network in allowed_nets (host bits set)")
 		}
 
 		allowedNets = append(allowedNets, allowedNet)
@@ -94,30 +94,32 @@ func setupAllowedPatterns() {
 	if *allowedSenderStr != "" {
 		allowedSender, err = regexp.Compile(*allowedSenderStr)
 		if err != nil {
-			log.WithField("allowed_sender", *allowedSenderStr).
-				WithError(err).
-				Fatal("allowed_sender pattern invalid")
+			log.Fatal().
+				Str("allowed_sender", *allowedSenderStr).
+				Err(err).
+				Msg("allowed_sender pattern invalid")
 		}
 	}
 
 	if *allowedRecipStr != "" {
 		allowedRecipients, err = regexp.Compile(*allowedRecipStr)
 		if err != nil {
-			log.WithField("allowed_recipients", *allowedRecipStr).
-				WithError(err).
-				Fatal("allowed_recipients pattern invalid")
+			log.Fatal().
+				Str("allowed_recipients", *allowedRecipStr).
+				Err(err).
+				Msg("allowed_recipients pattern invalid")
 		}
 	}
 }
 
 func setupRemotes() {
-	logger := log.WithField("remotes", *remotesStr)
+	logger := log.With().Str("remotes", *remotesStr).Logger()
 
 	if *remotesStr != "" {
 		for _, remoteURL := range strings.Split(*remotesStr, " ") {
 			r, err := ParseRemote(remoteURL)
 			if err != nil {
-				logger.Fatal(fmt.Sprintf("error parsing url: '%s': %v", remoteURL, err))
+				logger.Fatal().Msg(fmt.Sprintf("error parsing url: '%s': %v", remoteURL, err))
 			}
 
 			remotes = append(remotes, r)
@@ -148,8 +150,9 @@ func setupListeners() {
 		pa := splitProto(listenAddr)
 
 		if localAuthRequired() && pa.protocol == "" {
-			log.WithField("address", pa.address).
-				Fatal("Local authentication (via allowed_users file) " +
+			log.Fatal().
+				Str("address", pa.address).
+				Msg("Local authentication (via allowed_users file) " +
 					"not allowed with non-TLS listener")
 		}
 
@@ -162,35 +165,41 @@ func setupTimeouts() {
 
 	readTimeout, err = time.ParseDuration(*readTimeoutStr)
 	if err != nil {
-		log.WithField("read_timeout", *readTimeoutStr).
-			WithError(err).
-			Fatal("read_timeout duration string invalid")
+		log.Fatal().
+			Str("read_timeout", *readTimeoutStr).
+			Err(err).
+			Msg("read_timeout duration string invalid")
 	}
 	if readTimeout.Seconds() < 1 {
-		log.WithField("read_timeout", *readTimeoutStr).
-			Fatal("read_timeout less than one second")
+		log.Fatal().
+			Str("read_timeout", *readTimeoutStr).
+			Msg("read_timeout less than one second")
 	}
 
 	writeTimeout, err = time.ParseDuration(*writeTimeoutStr)
 	if err != nil {
-		log.WithField("write_timeout", *writeTimeoutStr).
-			WithError(err).
-			Fatal("write_timeout duration string invalid")
+		log.Fatal().
+			Str("write_timeout", *writeTimeoutStr).
+			Err(err).
+			Msg("write_timeout duration string invalid")
 	}
 	if writeTimeout.Seconds() < 1 {
-		log.WithField("write_timeout", *writeTimeoutStr).
-			Fatal("write_timeout less than one second")
+		log.Fatal().
+			Str("write_timeout", *writeTimeoutStr).
+			Msg("write_timeout less than one second")
 	}
 
 	dataTimeout, err = time.ParseDuration(*dataTimeoutStr)
 	if err != nil {
-		log.WithField("data_timeout", *dataTimeoutStr).
-			WithError(err).
-			Fatal("data_timeout duration string invalid")
+		log.Fatal().
+			Str("data_timeout", *dataTimeoutStr).
+			Err(err).
+			Msg("data_timeout duration string invalid")
 	}
 	if dataTimeout.Seconds() < 1 {
-		log.WithField("data_timeout", *dataTimeoutStr).
-			Fatal("data_timeout less than one second")
+		log.Fatal().
+			Str("data_timeout", *dataTimeoutStr).
+			Msg("data_timeout less than one second")
 	}
 }
 
@@ -226,7 +235,7 @@ func ConfigLoad() {
 	}
 
 	if *remotesStr == "" && *command == "" {
-		log.Warn("no remotes or command set; mail will not be forwarded!")
+		log.Warn().Msg("no remotes or command set; mail will not be forwarded!")
 	}
 
 	setupAllowedNetworks()
