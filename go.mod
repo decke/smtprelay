@@ -6,7 +6,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/peterbourgon/ff/v3 v3.4.0
 	github.com/rs/zerolog v1.34.0
-	github.com/stretchr/testify v1.11.0
+	github.com/stretchr/testify v1.11.1
 	golang.org/x/crypto v0.41.0
 )
 
