@@ -1,7 +1,7 @@
 module github.com/decke/smtprelay
 
 require (
-	github.com/DeRuina/timberjack v1.3.7
+	github.com/DeRuina/timberjack v1.3.8
 	github.com/chrj/smtpd v0.3.1
 	github.com/google/uuid v1.6.0
 	github.com/peterbourgon/ff/v3 v3.4.0
