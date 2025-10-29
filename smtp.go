@@ -200,7 +200,7 @@ func (c *Client) Auth(a smtp.Auth) error {
 		return err
 	}
 	encoding := base64.StdEncoding
-	mech, resp, err := a.Start(&smtp.ServerInfo{c.serverName, c.tls, c.auth})
+	mech, resp, err := a.Start(&smtp.ServerInfo{Name: c.serverName, TLS: c.tls, Auth: c.auth})
 	if err != nil {
 		c.Quit()
 		return err

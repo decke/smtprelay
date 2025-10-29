@@ -159,6 +159,17 @@ func mailHandler(peer smtpd.Peer, env smtpd.Envelope) error {
 		peerIP = addr.IP.String()
 	}
 
+	// Check for aliases
+	for i, recipient := range env.Recipients {
+		if alias, exists := aliasesList[recipient]; exists {
+			env.Recipients[i] = alias
+			log.Info().
+				Str("original_recipient", recipient).
+				Str("aliased_recipient", alias).
+				Msg("Recipient address aliased")
+		}
+	}
+
 	logger := log.With().
 		Str("from", env.Sender).
 		Strs("to", env.Recipients).
