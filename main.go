@@ -13,6 +13,7 @@ import (
 	"syscall"
 
 	"github.com/chrj/smtpd"
+	"github.com/fsnotify/fsnotify"
 	"github.com/google/uuid"
 )
 
@@ -160,6 +161,7 @@ func mailHandler(peer smtpd.Peer, env smtpd.Envelope) error {
 	}
 
 	// Check for aliases
+	aliasesMutex.RLock()
 	for i, recipient := range env.Recipients {
 		if alias, exists := aliasesList[recipient]; exists {
 			env.Recipients[i] = alias
@@ -169,6 +171,7 @@ func mailHandler(peer smtpd.Peer, env smtpd.Envelope) error {
 				Msg("Recipient address aliased")
 		}
 	}
+	aliasesMutex.RUnlock()
 
 	logger := log.With().
 		Str("from", env.Sender).
@@ -297,6 +300,71 @@ func getTLSConfig() *tls.Config {
 	}
 }
 
+func watchAliasFile() {
+	if *aliasFile == "" {
+		return
+	}
+
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		log.Error().
+			Err(err).
+			Msg("failed to create file watcher for alias file")
+		return
+	}
+
+	go func() {
+		defer watcher.Close()
+
+		for {
+			select {
+			case event, ok := <-watcher.Events:
+				if !ok {
+					return
+				}
+
+				if event.Has(fsnotify.Write) || event.Has(fsnotify.Create) {
+					log.Info().
+						Str("file", event.Name).
+						Msg("alias file changed, reloading")
+
+					err := LoadAliases(*aliasFile)
+					if err != nil {
+						log.Error().
+							Str("file", *aliasFile).
+							Err(err).
+							Msg("failed to reload alias file")
+					} else {
+						log.Info().
+							Int("count", len(aliasesList)).
+							Msg("alias file reloaded successfully")
+					}
+				}
+
+			case err, ok := <-watcher.Errors:
+				if !ok {
+					return
+				}
+				log.Error().
+					Err(err).
+					Msg("file watcher error")
+			}
+		}
+	}()
+
+	err = watcher.Add(*aliasFile)
+	if err != nil {
+		log.Error().
+			Str("file", *aliasFile).
+			Err(err).
+			Msg("failed to watch alias file")
+	} else {
+		log.Info().
+			Str("file", *aliasFile).
+			Msg("watching alias file for changes")
+	}
+}
+
 func main() {
 	ConfigLoad()
 
@@ -314,6 +382,9 @@ func main() {
 				Msg("cannot load allowed users file")
 		}
 	}
+
+	// Start watching alias file for changes
+	watchAliasFile()
 
 	var servers []*smtpd.Server
 

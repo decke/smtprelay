@@ -42,7 +42,7 @@ var (
 	allowedSenderStr = flagset.String("allowed_sender", "", "Regular expression for valid FROM EMail addresses")
 	allowedRecipStr  = flagset.String("allowed_recipients", "", "Regular expression for valid TO EMail addresses")
 	allowedUsers     = flagset.String("allowed_users", "", "Path to file with valid users/passwords")
-	aliasesFile      = flagset.String("aliases_file", "", "Path to aliases file")
+	aliasFile        = flagset.String("aliases_file", "", "Path to aliases file")
 	command          = flagset.String("command", "", "Path to pipe command")
 	remotesStr       = flagset.String("remotes", "", "Outgoing SMTP servers")
 	strictSender     = flagset.Bool("strict_sender", false, "Use only SMTP servers with Sender matches to From")
@@ -68,12 +68,12 @@ func localAuthRequired() bool {
 }
 
 func setupAliases() {
-	if *aliasesFile != "" {
+	if *aliasFile != "" {
 		aliases := make(AliasMap)
-		aliases, err := AliasLoadFile(*aliasesFile)
+		aliases, err := AliasLoadFile(*aliasFile)
 		if err != nil {
 			log.Fatal().
-				Str("file", *aliasesFile).
+				Str("file", *aliasFile).
 				Err(err).
 				Msg("cannot load aliases file")
 		}
