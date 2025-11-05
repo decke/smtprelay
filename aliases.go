@@ -5,9 +5,14 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"sync"
 )
 
 type AliasMap map[string]string
+
+var (
+	aliasesMutex sync.RWMutex
+)
 
 func AliasLoadFile(file string) (AliasMap, error) {
 	aliasMap := make(AliasMap)
@@ -49,4 +54,19 @@ func AliasLoadFile(file string) (AliasMap, error) {
 			Msg("cannot load aliases file")
 	}
 	return aliasMap, nil
+}
+
+func LoadAliases(filename string) error {
+	newAliases, err := AliasLoadFile(filename)
+	if err != nil {
+		return err
+	}
+
+	aliasesMutex.Lock()
+	defer aliasesMutex.Unlock()
+
+	// Update the aliases map
+	aliasesList = newAliases
+
+	return nil
 }
