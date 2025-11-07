@@ -31,3 +31,4 @@ device which produces mail.
 * Forwards all mail to a smarthost (any SMTP server)
 * Small codebase
 * IPv6 support
+* Aliases support (dynamic reload when alias file changes)
