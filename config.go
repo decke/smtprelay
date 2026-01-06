@@ -69,7 +69,6 @@ func localAuthRequired() bool {
 
 func setupAliases() {
 	if *aliasFile != "" {
-		aliases := make(AliasMap)
 		aliases, err := AliasLoadFile(*aliasFile)
 		if err != nil {
 			log.Fatal().
