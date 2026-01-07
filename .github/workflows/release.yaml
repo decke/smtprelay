@@ -3,6 +3,12 @@ name: Release Go Binaries
 on:
   release:
     types: [created]
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Tag name to build (v1.3.1)'
+        required: false
+        default: ''
 
 # Declare default permissions as read only.
 permissions: read-all
@@ -25,10 +31,25 @@ jobs:
       with:
         egress-policy: audit
 
+    - name: Determine ref to checkout
+      run: |
+        # If manually invoked with a release_tag input, use refs/tags/<release_tag>.
+        if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ github.event.inputs.release_tag }}" ]; then
+          echo "REF=refs/tags/${{ github.event.inputs.release_tag }}" >> $GITHUB_ENV
+        else
+          # For release events GITHUB_REF is already refs/tags/<tag>; otherwise fall back to the incoming ref.
+          echo "REF=${GITHUB_REF}" >> $GITHUB_ENV
+        fi
+
     - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
-    
+      with:
+        ref: ${{ env.REF }}
+
     - name: Set APP_VERSION env
-      run: echo APP_VERSION=$(echo ${GITHUB_REF} | rev | cut -d'/' -f 1 | rev ) >> ${GITHUB_ENV}
+      run: |
+        # basename strips refs/... and yields the tag or branch name
+        echo "APP_VERSION=$(basename ${REF})" >> $GITHUB_ENV
+
     - name: Set BUILD_TIME env
       run: echo BUILD_TIME=$(date) >> ${GITHUB_ENV}
       
