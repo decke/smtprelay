@@ -46,6 +46,8 @@ var (
 	command          = flagset.String("command", "", "Path to pipe command")
 	remotesStr       = flagset.String("remotes", "", "Outgoing SMTP servers")
 	strictSender     = flagset.Bool("strict_sender", false, "Use only SMTP servers with Sender matches to From")
+	remoteCert       = flagset.String("remote_certificate", "", "Client SSL certificate for remote STARTTLS/TLS")
+	remoteKey        = flagset.String("remote_key", "", "Client SSL private key for remote STARTTLS/TLS")
 
 	// additional flags
 	_           = flagset.String("config", "", "Path to config file (ini format)")
@@ -65,6 +67,36 @@ var (
 
 func localAuthRequired() bool {
 	return *allowedUsers != ""
+}
+
+func remoteCertAndKeyReadable() bool {
+	certSet := *remoteCert != ""
+	keySet := *remoteKey != ""
+	
+	// Both must be set or both must be unset
+	if certSet != keySet {
+		return false
+	}
+	
+	// If both are set, verify files exist and are accessible
+	if certSet && keySet {
+		if _, err := os.Stat(*remoteCert); err != nil {
+			log.Error().
+				Str("cert", *remoteCert).
+				Err(err).
+				Msg("cannot access remote client certificate file")
+			return false
+		}
+		if _, err := os.Stat(*remoteKey); err != nil {
+			log.Error().
+				Str("key", *remoteKey).
+				Err(err).
+				Msg("cannot access remote client key file")
+			return false
+		}
+	}
+	
+	return true
 }
 
 func setupAliases() {
@@ -135,6 +167,11 @@ func setupRemotes() {
 			r, err := ParseRemote(remoteURL)
 			if err != nil {
 				logger.Fatal().Msg(fmt.Sprintf("error parsing url: '%s': %v", remoteURL, err))
+			}
+
+			if *remoteCert != "" && *remoteKey != "" && (r.Scheme == "smtps" || r.Scheme == "starttls") {
+				r.ClientCertPath = *remoteCert
+				r.ClientKeyPath = *remoteKey
 			}
 
 			remotes = append(remotes, r)
@@ -251,6 +288,13 @@ func ConfigLoad() {
 
 	if *remotesStr == "" && *command == "" {
 		log.Warn().Msg("no remotes or command set; mail will not be forwarded!")
+	}
+
+	if !remoteCertAndKeyReadable() {
+		log.Fatal().
+			Str("remote_certificate", *remoteCert).
+			Str("remote_key", *remoteKey).
+			Msg("remote_certificate and remote_key must both be set or both be empty")
 	}
 
 	setupAllowedNetworks()
