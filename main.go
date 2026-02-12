@@ -281,6 +281,7 @@ func generateUUID() string {
 }
 
 func getTLSConfig() *tls.Config {
+	// Certificate loading / validation
 	if *localCert == "" || *localKey == "" {
 		log.Fatal().
 			Str("cert_file", *localCert).
@@ -295,9 +296,89 @@ func getTLSConfig() *tls.Config {
 			Msg("cannot load X509 keypair")
 	}
 
-	return &tls.Config{
+	// TLS profile configuration
+	// tls.Config.CipherSuites only affects TLS 1.0–1.2.
+
+	// Hardened: TLS 1.2 suites limited to modern AEAD + ECDHE.
+	hardenedSuites := []uint16{
+		tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+		tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+		tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+		tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+		tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,
+		tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
+	}
+
+	// Extended: add CBC + RSA key exchange suites for legacy compatibility.
+	extendedAdditionalSuites := []uint16{
+		// CBC + ECDHE
+		tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,
+		tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256,
+		tls.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,
+		tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
+		tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
+		tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
+
+		// RSA key exchange
+		tls.TLS_RSA_WITH_AES_128_CBC_SHA,
+		tls.TLS_RSA_WITH_AES_128_CBC_SHA256,
+		tls.TLS_RSA_WITH_AES_128_GCM_SHA256,
+		tls.TLS_RSA_WITH_AES_256_CBC_SHA,
+		tls.TLS_RSA_WITH_AES_256_GCM_SHA384,
+	}
+
+	// Base config: Go defaults unless overridden.
+	conf := &tls.Config{
 		Certificates: []tls.Certificate{cert},
 	}
+
+	profile := strings.ToLower(strings.TrimSpace(*tlsProfile))
+	if profile == "" {
+		profile = "default"
+	}
+
+	switch profile {
+	case "default":
+		// Go defaults (leave MinVersion/MaxVersion/CipherSuites unset).
+
+	case "modern":
+		// TLS 1.3 only.
+		conf.MinVersion = tls.VersionTLS13
+		conf.MaxVersion = tls.VersionTLS13
+
+	case "hardened":
+		// TLS 1.2+ with strict TLS 1.2 suite allowlist.
+		conf.MinVersion = tls.VersionTLS12
+		conf.CipherSuites = hardenedSuites
+
+	case "extended":
+		// TLS 1.2+ with hardened suites first, then compatibility fallbacks.
+		conf.MinVersion = tls.VersionTLS12
+		conf.CipherSuites = append(
+			append([]uint16(nil), hardenedSuites...),
+			extendedAdditionalSuites...,
+		)
+
+	case "legacy":
+		// Last resort: TLS 1.0+ and everything Go exposes for TLS 1.0–1.2.
+		conf.MinVersion = tls.VersionTLS10
+
+		allSuites := []uint16{}
+		for _, cs := range tls.CipherSuites() {
+			allSuites = append(allSuites, cs.ID)
+		}
+		for _, cs := range tls.InsecureCipherSuites() {
+			allSuites = append(allSuites, cs.ID)
+		}
+		conf.CipherSuites = allSuites
+
+	default:
+		log.Warn().
+			Str("tls_profile", profile).
+			Msg("unknown tls_profile; using default")
+	}
+
+	return conf
 }
 
 func watchAliasFile() {

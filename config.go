@@ -31,6 +31,7 @@ var (
 	listenStr        = flagset.String("listen", "127.0.0.1:25 [::1]:25", "Address and port to listen for incoming SMTP")
 	localCert        = flagset.String("local_cert", "", "SSL certificate for STARTTLS/TLS")
 	localKey         = flagset.String("local_key", "", "SSL private key for STARTTLS/TLS")
+	tlsProfile       = flagset.String("tls_profile", "default", "TLS profile: modern | hardened | default | extended | legacy")
 	localForceTLS    = flagset.Bool("local_forcetls", false, "Force STARTTLS (needs local_cert and local_key)")
 	readTimeoutStr   = flagset.String("read_timeout", "60s", "Socket timeout for read operations")
 	writeTimeoutStr  = flagset.String("write_timeout", "60s", "Socket timeout for write operations")
