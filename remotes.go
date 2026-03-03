@@ -7,13 +7,15 @@ import (
 )
 
 type Remote struct {
-	SkipVerify bool
-	Auth       smtp.Auth
-	Scheme     string
-	Hostname   string
-	Port       string
-	Addr       string
-	Sender     string
+	SkipVerify      bool
+	Auth            smtp.Auth
+	Scheme          string
+	Hostname        string
+	Port            string
+	Addr            string
+	Sender          string
+	ClientCertPath  string
+	ClientKeyPath   string
 }
 
 // ParseRemote creates a remote from a given url in the following format:
