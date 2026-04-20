@@ -1,7 +1,7 @@
 github.com/DeRuina/timberjack v1.4.1 h1:JftM5HN/ITKehAXjtdbGqN5XZIS1biHm7VSjU0Qbtqg=
 github.com/DeRuina/timberjack v1.4.1/go.mod h1:RLoeQrwrCGIEF8gO5nV5b/gMD0QIy7bzQhBUgpp1EqE=
-github.com/chrj/smtpd v0.4.0 h1:DPJY9XxJngESsV1O/GKeydN6c+iuV1dglW/dw0VlxFY=
-github.com/chrj/smtpd v0.4.0/go.mod h1:zEP61gNDlWp/jdUqBcq/ykIbgOERyRvwfMsRLl3h9gM=
+github.com/chrj/smtpd v1.0.0 h1:jChSfLzAhrSxTky0EZ6oW+UKiqdnepdknWYRkPeA+ZE=
+github.com/chrj/smtpd v1.0.0/go.mod h1:zEP61gNDlWp/jdUqBcq/ykIbgOERyRvwfMsRLl3h9gM=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/fortytw2/leaktest v1.3.0 h1:u8491cBMTQ8ft8aeV+adlcytMZylmA5nnwwkRZjI8vw=
