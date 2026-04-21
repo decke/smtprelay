@@ -1,5 +1,5 @@
-github.com/DeRuina/timberjack v1.4.1 h1:JftM5HN/ITKehAXjtdbGqN5XZIS1biHm7VSjU0Qbtqg=
-github.com/DeRuina/timberjack v1.4.1/go.mod h1:RLoeQrwrCGIEF8gO5nV5b/gMD0QIy7bzQhBUgpp1EqE=
+github.com/DeRuina/timberjack v1.4.2 h1:4bKlzhKdsR+2oNkgef9mqb4n11ICow8VK88RfzJPzN8=
+github.com/DeRuina/timberjack v1.4.2/go.mod h1:RLoeQrwrCGIEF8gO5nV5b/gMD0QIy7bzQhBUgpp1EqE=
 github.com/chrj/smtpd v0.4.0 h1:DPJY9XxJngESsV1O/GKeydN6c+iuV1dglW/dw0VlxFY=
 github.com/chrj/smtpd v0.4.0/go.mod h1:zEP61gNDlWp/jdUqBcq/ykIbgOERyRvwfMsRLl3h9gM=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
