@@ -1,7 +1,7 @@
 github.com/DeRuina/timberjack v1.4.6 h1:ixA4vWcXt160M69ZbhUTLfSOOlEtEE+7hHEgDWIXUiI=
 github.com/DeRuina/timberjack v1.4.6/go.mod h1:RLoeQrwrCGIEF8gO5nV5b/gMD0QIy7bzQhBUgpp1EqE=
-github.com/chrj/smtpd v1.0.0 h1:jChSfLzAhrSxTky0EZ6oW+UKiqdnepdknWYRkPeA+ZE=
-github.com/chrj/smtpd v1.0.0/go.mod h1:zEP61gNDlWp/jdUqBcq/ykIbgOERyRvwfMsRLl3h9gM=
+github.com/chrj/smtpd v1.0.1 h1:HmC5/iGdI27q4JJn58uaANAOUE+QC7ZYZnDlQWJEph4=
+github.com/chrj/smtpd v1.0.1/go.mod h1:zEP61gNDlWp/jdUqBcq/ykIbgOERyRvwfMsRLl3h9gM=
 github.com/fortytw2/leaktest v1.3.0 h1:u8491cBMTQ8ft8aeV+adlcytMZylmA5nnwwkRZjI8vw=
 github.com/fortytw2/leaktest v1.3.0/go.mod h1:jDsjWgpAGjm2CA7WthBh/CdZYEPF31XHquHwclZch5g=
 github.com/fsnotify/fsnotify v1.10.1 h1:b0/UzAf9yR5rhf3RPm9gf3ehBPpf0oZKIjtpKrx59Ho=
