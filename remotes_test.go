@@ -107,6 +107,26 @@ func TestValidRemoteUrls(t *testing.T) {
 	}, "starttls://user:pass@email.com:8425/sender@website.com?auth=login&skipVerify")
 }
 
+func TestIPv6RemoteUrls(t *testing.T) {
+	for _, test := range []struct {
+		url, scheme, port string
+	}{
+		{"smtp://[::1]", "smtp", "25"},
+		{"smtps://[::1]", "smtps", "465"},
+		{"starttls://[::1]", "starttls", "587"},
+		{"smtp://[::1]:2525", "smtp", "2525"},
+	} {
+		t.Run(test.url, func(t *testing.T) {
+			AssertRemoteUrlEquals(t, &Remote{
+				Scheme:   test.scheme,
+				Hostname: "::1",
+				Port:     test.port,
+				Addr:     "[::1]:" + test.port,
+			}, test.url)
+		})
+	}
+}
+
 func TestMissingScheme(t *testing.T) {
 	_, err := ParseRemote("http://user:pass@email.com:8425/sender@website.com")
 	assert.NotNil(t, err, "Err must be present")
