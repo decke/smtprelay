@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"net"
 	"net/smtp"
 	"net/url"
 )
@@ -55,7 +56,7 @@ func ParseRemote(remoteURL string) (*Remote, error) {
 		Scheme:   u.Scheme,
 		Hostname: hostname,
 		Port:     port,
-		Addr:     fmt.Sprintf("%s:%s", hostname, port),
+		Addr:     net.JoinHostPort(hostname, port),
 	}
 
 	if u.User != nil {
